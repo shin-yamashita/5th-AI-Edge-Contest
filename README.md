@@ -1,5 +1,7 @@
 # 5th AI Edge Contest
 
+このリポジトリでは、[5th AI Edge Contest](https://signate.jp/competitions/537) に向けて実装したシステムのソースコードを公開する。 
+
 ## 課題
 
 - 車両前方カメラの撮影動画から物体の写る矩形領域を検出し、追跡するアルゴリズムを作成する  
@@ -7,13 +9,12 @@
 
 ## TFlite delegate と rv32emc を用いた実装
 
-このリポジトリでは、[5th AI Edge Contest](https://signate.jp/competitions/537) に向けて実装したシステムのソースコードを公開する。  
 - TFlite の delegate 機構を用いて FPGA にアクセラレータを実装した。([4th AI Edge Contest](https://github.com/shin-yamashita/4th-AI-Edge-Contest)で開発したものを修正して用いた)
 - RISC-V は scratch から開発した rv32emc に対応する CPU core を実装した。
 - アクセラレータ 及び rv32emc core は SystemVerilog で記述した。
 - 推論アプリは PYNQ Linux (Ubuntu20.04) 上で実行する python で実装し、トラッキングアルゴリズムを rv32emc 上の C で実装した。
 
-詳細は [doc/レポート](doc/s_yamashita_report.pdf) 参照
+詳細は [doc/レポート](doc/report.pdf) 参照
 
 ### ./infer/ [→推論実行アプリケーション](infer/)  
 
@@ -34,18 +35,18 @@
 ## files
 ```
 ├─ infer                Inference application
-│└─ infer_video.py
+│ └─ infer_video.py
 ├─ tensorflow_src
-│└─ tflite_delegate    Delegate interface sources (C++)
+│ └─ tflite_delegate    Delegate interface sources (C++)
 └─ tfacc_i8             FPGA design sources
   ├─ bd                 ZYNQ block design
   ├─ firm               Firmware for rv32emc (C)
-  │└─ rvmon
+  │ └─ rvmon
   ├─ hdl                HDL sources
-  │├─ acc              Accelerator sources (SystemVerilog)
-  │├─ rv32_core        rv31emc sources (SystemVerilog)
-  │├─ tfacc_cpu_v1_0.v Controller top design
-  │└─ tfacc_memif.sv   Data pass top design
+  │ ├─ acc              Accelerator sources (SystemVerilog)
+  │ ├─ rv32_core        rv31emc sources (SystemVerilog)
+  │ ├─ tfacc_cpu_v1_0.v Controller top design
+  │ └─ tfacc_memif.sv   Data pass top design
   ├─ ip                 Xilinx ip
   ├─ sim                Logic simulation environment
   └─ syn                Logic synthesis environment
