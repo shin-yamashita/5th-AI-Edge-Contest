@@ -5,18 +5,47 @@ FPGA に実装した accelerator の RTL ソースである。
 
 Vivado/2020.2 Webpack で論理シミュレーション、論理合成を行った。 
 
+----
 ## simulation 実行
+```
 $ cd sim  
 $ sh compile_tfacc_core.sh  
 $ sh run_tfacc_core.sh 0 5   # 0 番目から 5 番目までの test vector を shimulation 実行   
+```
 結果は xsim-r.log に
 
+----
 ## synthesis 実行
+```
 $ cd syn  
 $ sh build.sh  
+```
 生成物は、./rev/design_1_wrapper.bit  
 design_1.bit に rename して用いる  
 
+----
+## rv32emc のファームウェアコンパイル
+
+rv32emc の C プログラムコンパイルは riscv-gnu-toolchain の cross gcc を用いた。  
+gcc バージョンは 9.2.0 (gcc ver 11 では実行時に異常な動作がある、未解決)
+```
+*** cross gcc の build / install ***
+$ sudo apt install gawk texinfo bison flex  
+$ git clone --recursive https://github.com/riscv/riscv-gnu-toolchain
+$ cd riscv-gnu-toolchain
+$ ./configure --prefix=/opt/rv32e --disable-linux --with-arch=rv32emac --with-abi=ilp32e
+$ make newlib
+$ make install   /opt/rv32e/　に cross gcc をインストール
+```
+ファームウエアのコンパイル  
+```
+$ cd firm/rvmon
+$ make rvmon.mot    FPGA の rv32emc core にロードするバイナリを生成
+```
+rv32emc に関しては、別のリポジトリ https://github.com/shin-yamashita/rv32emc にコアの開発のために作成した ISS やテストプログラムを載せている。  
+
+
+----
 ## files
 ```
 tfacc_i8/
