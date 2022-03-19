@@ -2,8 +2,8 @@
 # TFlite delegate interface C++ sources
 
 TFlite の [custom_delegate](https://www.tensorflow.org/lite/performance/implementing_delegate) に従って実装した C++ ソース。  
-1. Linux PC (Ubuntu20.04) 上で Conv2d/dwConv2d の Reference model を作り、delegate の動作を確認。  
-また、論理検証用の test vector file を生成。  
+1. Linux PC (Ubuntu20.04) 上で Conv2d/dwConv2d の Reference model を作り、delegate の動作を確認した。  
+また、論理検証用の test vector file を生成する。  
 2. ultra96v2(PYNQ Ubuntu20.04) 上で FPGA に delegate する。  
 
 Linux PC と ultra96v2 の共通ソース。  
@@ -33,6 +33,10 @@ static int dumpto = 65;
 
 ## Build TensorFlow Lite Python Wheel Package
 
+
+Google は、FlatBuffer に変換した推論グラフを高速に実行する軽量の [tflite_runtime](https://www.tensorflow.org/lite/guide/python) を提供しており、ultra96v2 にも pip で導入できる。  
+pip で導入した runtime のバージョンと、作成した delegate インターフェースのバージョンが合わないなどの場合、ここに述べる方法で build install する。  
+
 1. **環境設定**  
 
    https://www.tensorflow.org/lite/guide/build_cmake_pip  を参照  
@@ -40,7 +44,10 @@ static int dumpto = 65;
    ```$ pip3 install wheel```  
 
    **tensorflow r2.7 ソースをダウンロード、 ../tensorflow_src に配置する。**  
-   ```$ git clone -b r2.7 https://github.com/tensorflow/tensorflow.git  ../tensorflow_src```
+   ```
+   $ cd ../tensorflow_src/
+   $ git clone -b r2.7 https://github.com/tensorflow/tensorflow.git  ../tensorflow_src
+   ```
 
 2. **build / install**  
    ```
@@ -55,12 +62,23 @@ static int dumpto = 65;
 
 ## **build delegate interface library**
 
-tensorflow r2.7 のソースツリーに tflite_delegate/* を配置する。  
-../tensorflow_src/tflite_delegate/*  
-
 build には bazel を用いており、Linux PC と Ultra96-V2 で build 手順は同じ。  
 
-1. **bazel の導入**  
+1. **環境設定**
+
+   **tensorflow r2.7 ソースをダウンロード、 ../tensorflow_src に配置する。**  
+   ```
+   $ cd ../tensorflow_src/
+   $ git clone -b r2.7 https://github.com/tensorflow/tensorflow.git  ../tensorflow_src
+   ```
+
+   tensorflow r2.7 のソースツリーの top に tflite_delegate/* が配置される。  
+   ```bash
+   $ ls ../tensorflow_src/tflite_delegate/  
+   BUILD  Conv2D.cc  Conv2D.h  MyDelegate.cc ...
+   ```
+
+   **bazel の導入**  
    https://docs.bazel.build/versions/4.2.2/install-ubuntu.html を参照  
    - Linux PC :  "Using Bazel's apt repository" を参照  
       apt によりインストール    
@@ -74,9 +92,10 @@ build には bazel を用いており、Linux PC と Ultra96-V2 で build 手順
    $ cd ../tensorflow_src  
    $ bazel build -c opt tflite_delegate/dummy_external_delegate.so  --define `uname -m`=1
    ```
-   --define \`uname -m\`=1 によって LinuxPC(x86_64) と Ultra96-V2(aarch64) を切り替えでいる。C++ ソースでは、 `#ifdef ULTRA96` で切り替える。    
 
-   Ultra96-V2 では cpu リソース不足のため、--local_ram_resources=HOST_RAM*.5 などのオプションをつけたほうが良い。  
+   ```--define `uname -m`=1```  によって LinuxPC(x86_64) と Ultra96-V2(aarch64) を切り替えでいる。C++ ソースでは、 `#ifdef ULTRA96` で切り替える。    
+
+   Ultra96-V2 では cpu リソース不足のため、`--local_ram_resources=HOST_RAM*.5` などのオプションをつけたほうが良い。  
 
    bazel で build すると、自動的に bazel-bin などの symbolic link ができており、  
 
@@ -87,23 +106,25 @@ build には bazel を用いており、Linux PC と Ultra96-V2 で build 手順
 
 ## python API
 
-Google は、FlatBuffer に変換した推論グラフを高速に実行する軽量の tflite_runtime[tflite_runtime](https://www.tensorflow.org/lite/guide/python) を提供している。ultra96v2 にも pip で導入できる。  
-新たに作成した delegate インターフェースは、ダイナミックリンクライブラリ(dummy_external_delegate\.so)として tflite_runtime とリンクすることで実行の delegate が行われる。  
+新たに作成した delegate インターフェースをダイナミックリンクライブラリ(dummy_external_delegate\.so)として tflite_runtime にリンクすることで実行の delegate が行われる。  
 tflite_runtime の python インターフェースでは interpreter のインスタンス時に dummy_external_delegate\.so を指定してリンクするだけである。
 
 [^6]:https://www.tensorflow.org/lite/guide/python
 
 ```python
 import tflite_runtime.interpreter as tflite
+
 # Instantiate interpreter
 interpreter = tflite.Interpreter(model_path=model, 
       experimental_delegates=[tflite.load_delegate(
         　　　　　　　'{path-to}/dummy_external_delegate.so.1')] )      
 interpreter.allocate_tensors()
+
 # Get input and output tensors.
 input_details  = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
-# set image
+
+# Set image
 interpreter.set_tensor(input_details[0]['index'], np.uint8(image)) 
 # Invoke
 interpreter.invoke()
