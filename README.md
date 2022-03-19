@@ -21,7 +21,7 @@
 - python で記述した推論アプリケーション。  
 - Object Detection 推論ネットワークは [TF2 の SSD mobilenetv2](http://download.tensorflow.org/models/object_detection/tf2/20200711/ssd_mobilenet_v2_320x320_coco17_tpu-8.tar.gz) をベースに今回の課題に合わせて転移学習し、int8 量子化した。  
 
-### ./tensorflow_src/tflite_delegate/  [→TFlite delegate interface](tensorflow_src/tflite_delegate/)  
+### ./tensorflow_src/tflite_delegate/  [→TFlite delegate interface](tensorflow_src/)  
 - 推論アプリから delegate API を介して C++ reference model または FPGA アクセラレータに実行委譲するインターフェース関数のソース。  
 - Conv2d, depthwiseConv2d の２種の演算を delegate する。
 - C++ reference model は tflite の [チャネルごとの int8 量子化](https://www.tensorflow.org/lite/performance/quantization_spec) で実装した。
