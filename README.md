@@ -44,7 +44,7 @@
   │ └─ rvmon
   ├─ hdl                HDL sources
   │ ├─ acc              Accelerator sources (SystemVerilog)
-  │ ├─ rv32_core        rv31emc sources (SystemVerilog)
+  │ ├─ rv32_core        rv32emc sources (SystemVerilog)
   │ ├─ tfacc_cpu_v1_0.v Controller top design
   │ └─ tfacc_memif.sv   Data pass top design
   ├─ ip                 Xilinx ip
