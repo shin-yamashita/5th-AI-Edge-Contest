@@ -1,6 +1,6 @@
 
 
-FPGA_DATA = ../../../infer/fpga-data/
+FPGA_DATA = ../../infer/fpga-data/
 
 install:	rev/design_1_wrapper.bit
 	cp rev/design_1_wrapper.bit $(FPGA_DATA)/design_1.bit

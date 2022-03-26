@@ -19,4 +19,15 @@ syn/usage_statistics_webtalk.*
 .svproject
 .settings
 .srcs
-syn/rev*
+syn/rev/
+bd/design_1/design_1.bda
+bd/design_1/design_1.bxml
+bd/design_1/design_1_ooc.xdc
+bd/design_1/hdl/
+bd/design_1/hw_handoff/
+bd/design_1/ip/
+bd/design_1/ipshared/
+bd/design_1/sim/
+bd/design_1/synth/
+syn/.gen/
+syn/.ip_user_files/

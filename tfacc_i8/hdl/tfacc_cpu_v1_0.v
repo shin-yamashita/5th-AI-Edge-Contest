@@ -150,7 +150,7 @@ rv32_core_0 u_rv32_core (
 );
 
 // User logic ends
-
+/*---
 ila_0 u_ila (
   .clk(s00_axi_aclk), // input wire clk
   .probe0(p_adr), // input wire [31:0]  probe0  
@@ -160,7 +160,7 @@ ila_0 u_ila (
   .probe4({p_we, p_re, p_ack, p_rack, m_apb_penable, m_apb_pwrite, m_apb_pready[0], m_apb_psel}) // input wire [7:0]  probe4
   // 7     6     5      4       3         2       1        0
 );
-
+---*/
 
 endmodule
 

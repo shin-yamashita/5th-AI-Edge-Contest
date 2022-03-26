@@ -1,5 +1,5 @@
 
-add_files ../bd/design_1/design_1.bd
+#add_files ../bd/design_1/design_1.bd
 
 read_verilog -library xil_defaultlib -sv {
   ../hdl/acc/logic_types.svh
@@ -22,7 +22,6 @@ read_verilog -library xil_defaultlib -sv {
 
 read_verilog -library xil_defaultlib {
   ../hdl/tfacc_cpu_v1_0.v
-  ../bd/design_1/hdl/design_1_wrapper.v
   ../hdl/rv32_core/dpram_h.v  
 }
 

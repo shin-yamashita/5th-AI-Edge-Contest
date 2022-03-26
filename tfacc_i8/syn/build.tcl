@@ -32,6 +32,7 @@ file mkdir $outputDir
 source read_hdl.tcl
 source read_ip.tcl
 
+
 read_xdc timing.xdc
 read_xdc tfacc_pin.xdc
 read_xdc dont_touch.xdc

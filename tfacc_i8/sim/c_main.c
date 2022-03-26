@@ -138,7 +138,7 @@ int mem_wr(int adr, int data)
 
 // dpi interface func wrapper
 int _reg_wr(int addr, int data){
-    printf("=w %x %x\n", addr, data);
+//    printf("=w %x %x\n", addr, data);
     return reg_wr(addr, data);
 }
 int _reg_rd(int addr, int *data){

@@ -1,10 +1,11 @@
 #!/bin/bash
 
-#source /opt/Xilinx/Vivado/2019.2/settings64.sh
-source /opt/Xilinx/Vivado/2020.2/settings64.sh
+source xilinx_env.sh
 
-stage=0
-endst=0
+# simulation run stage 0 ~ 71
+
+stage=0 # stage from
+endst=0 # stage to
 if [ $# -ge 1 ]; then
   stage=$1
   endst=$2

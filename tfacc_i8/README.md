@@ -9,8 +9,10 @@ Vivado/2020.2 Webpack で論理シミュレーション、論理合成を行っ�
 ## simulation 実行
 ```
 $ cd sim  
-$ sh compile_tfacc_core.sh  
-$ sh run_tfacc_core.sh 0 5   # 0 番目から 5 番目までの test vector を shimulation 実行   
+$ ./export_ip_src.sh        # 1度だけ実行 ..ip/*.xcix の ip群の simulation 用　ソースを生成
+                            #   .ip_user_files/ 以下に生成される
+$ ./compile_tfacc_core.sh   # dpi-C compile, elaboration
+$ ./run_tfacc_core.sh 0 5   # 0 番目から 5 番目までの test vector を simulation 実行   
 ```
 結果は xsim-r.log に
 
@@ -18,10 +20,15 @@ $ sh run_tfacc_core.sh 0 5   # 0 番目から 5 番目までの test vector を 
 ## synthesis 実行
 ```
 $ cd syn  
-$ sh build.sh  
+$ ./build.sh  
 ```
 生成物は、./rev/design_1_wrapper.bit  
 design_1.bit に rename して用いる  
+```
+FPGA_DATA = ../../infer/fpga-data/
+        cp rev/design_1_wrapper.bit $(FPGA_DATA)/design_1.bit
+        cp ../bd/design_1/hw_handoff/design_1.hwh $(FPGA_DATA)/
+```
 
 ----
 ## rv32emc のファームウェアコンパイル
@@ -35,12 +42,12 @@ $ git clone --recursive https://github.com/riscv/riscv-gnu-toolchain
 $ cd riscv-gnu-toolchain
 $ ./configure --prefix=/opt/rv32e --disable-linux --with-arch=rv32emac --with-abi=ilp32e
 $ make newlib
-$ make install   /opt/rv32e/　に cross gcc をインストール
+$ make install   # /opt/rv32e/　に cross gcc をインストール
 ```
 ファームウエアのコンパイル  
 ```
 $ cd firm/rvmon
-$ make rvmon.mot    FPGA の rv32emc core にロードするバイナリを生成
+$ make rvmon.mot   # FPGA の rv32emc core にロードするバイナリを生成
 ```
 rv32emc に関しては、別のリポジトリ https://github.com/shin-yamashita/rv32emc にコアの開発のために作成した ISS やテストプログラムを載せている。  
 

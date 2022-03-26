@@ -8,19 +8,19 @@ foreach ip $ips {
         read_ip ../ip/$ip.xcix
 #       generate_target -force {Synthesis} [get_ips $ip ]
 #       synth_ip -force [get_ips $ip ]
-        generate_target {Synthesis} [get_ips $ip ]
-#        synth_ip [get_ips $ip ]
+        generate_target {Synthesis simulation} [get_ips $ip ]
+        export_ip_user_files -of_objects [get_ips $ip]
  }
 
+read_bd ../bd/design_1/design_1.bd
+set_property synth_checkpoint_mode None [get_files ../bd/design_1/design_1.bd]
+make_wrapper -files [get_files ../bd/design_1/design_1.bd] -top
 
-read_ip -quiet ../bd/design_1/ip/design_1_auto_ds_0/design_1_auto_ds_0.xci
-read_ip -quiet ../bd/design_1/ip/design_1_auto_pc_0/design_1_auto_pc_0.xci
-read_ip -quiet ../bd/design_1/ip/design_1_ps8_0_axi_periph_1/design_1_ps8_0_axi_periph_1.xci
-read_ip -quiet ../bd/design_1/ip/design_1_rst_ps8_0_100M_0/design_1_rst_ps8_0_100M_0.xci
-read_ip -quiet ../bd/design_1/ip/design_1_smartconnect_0_0/design_1_smartconnect_0_0.xci
-read_ip -quiet ../bd/design_1/ip/design_1_tfacc_cpu_v1_0_0_0/design_1_tfacc_cpu_v1_0_0_0.xci
-read_ip -quiet ../bd/design_1/ip/design_1_tfacc_memif_0_0/design_1_tfacc_memif_0_0.xci
-read_ip -quiet ../bd/design_1/ip/design_1_zynq_ultra_ps_e_0_0/design_1_zynq_ultra_ps_e_0_0.xci
+read_verilog -library xil_defaultlib {
+  ../bd/design_1/hdl/design_1_wrapper.v
+}
+generate_target {Synthesis simulation} [get_files ../bd/design_1/design_1.bd]
+
 
 
 

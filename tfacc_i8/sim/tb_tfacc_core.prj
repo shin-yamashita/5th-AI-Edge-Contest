@@ -1,14 +1,15 @@
 
+
 # compile verilog/system verilog design source files
 verilog work  --include "../hdl/acc" --include "./" \
-"../ip/ip_user_files/ip/axi_ic/sim/axi_ic.v" \
-"../ip/ip_user_files/ipstatic/hdl/axi_interconnect_v1_7_vl_rfs.v" \
-"../ip/ip_user_files/ipstatic/simulation/blk_mem_gen_v8_4.v" \
-"../ip/ip_user_files/ip/rdbuf16k/sim/rdbuf16k.v" \
-"../ip/ip_user_files/ip/rdbuf2k/sim/rdbuf2k.v" \
-"../ip/ip_user_files/ip/rdbuf32k/sim/rdbuf32k.v" \
-"../ip/ip_user_files/ip/rdbuf4k/sim/rdbuf4k.v" \
-"../ip/ip_user_files/ip/rdbuf8k/sim/rdbuf8k.v" \
+".ip_user_files/ip/axi_ic/sim/axi_ic.v" \
+".ip_user_files/ipstatic/hdl/axi_interconnect_v1_7_vl_rfs.v" \
+".ip_user_files/ipstatic/simulation/blk_mem_gen_v8_4.v" \
+".ip_user_files/ip/rdbuf16k/sim/rdbuf16k.v" \
+".ip_user_files/ip/rdbuf2k/sim/rdbuf2k.v" \
+".ip_user_files/ip/rdbuf32k/sim/rdbuf32k.v" \
+".ip_user_files/ip/rdbuf4k/sim/rdbuf4k.v" \
+".ip_user_files/ip/rdbuf8k/sim/rdbuf8k.v" \
 "sync_fifo.v" \
 
 sv work  --include "../hdl/acc" --include "./" \
@@ -26,7 +27,7 @@ sv work  --include "../hdl/acc" --include "./" \
 "tb_tfacc_core.sv" \
 
 # compile glbl module
-verilog work "glbl.v"
+verilog work $XILINX_VIVADO/data/verilog/src/glbl.v
 
 # Do not sort compile order
 nosort
