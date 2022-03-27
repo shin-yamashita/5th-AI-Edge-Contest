@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sat Mar 26 14:55:40 2022" VIVADOVERSION="2020.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sat Mar 26 22:34:30 2022" VIVADOVERSION="2020.2">
 
   <SYSTEMINFO ARCH="zynquplus" BOARD="avnet.com:ultra96v2:part0:1.2" DEVICE="xczu3eg" NAME="design_1" PACKAGE="sbva484" SPEEDGRADE="-1"/>
 
@@ -1537,6 +1537,8 @@
     <MODULE COREREVISION="1" FULLNAME="/tfacc_memif_0" HWVERSION="1.0" INSTANCE="tfacc_memif_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="tfacc_memif" VLNV="xilinx.com:module_ref:tfacc_memif:1.0">
       <DOCUMENTS/>
       <PARAMETERS>
+        <PARAMETER NAME="Np" VALUE="42"/>
+        <PARAMETER NAME="debug" VALUE="0"/>
         <PARAMETER NAME="Component_Name" VALUE="design_1_tfacc_memif_0_0"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
       </PARAMETERS>
