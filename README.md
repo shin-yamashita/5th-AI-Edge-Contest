@@ -14,7 +14,7 @@
 - アクセラレータ 及び rv32emc core は SystemVerilog で記述した。
 - 推論アプリは PYNQ Linux (Ubuntu20.04) 上で実行する python で実装し、トラッキングアルゴリズムを rv32emc 上の C で実装した。
 
-詳細は [doc/レポート](doc/report.pdf) 参照
+詳細は [doc/レポート](doc/report-20220320.pdf) 参照
 
 ### ./infer/ [→推論実行アプリケーション](infer/)  
 
