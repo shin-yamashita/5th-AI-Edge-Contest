@@ -6,8 +6,8 @@ module input_arb
    #(parameter Np = 1,	// Number of parallel
      parameter debug = 0)	// debug mode
     (
-    input  logic    clk,		//
-    input  logic    xrst,		//
+//    input  logic    clk,		//
+//    input  logic    xrst,		//
 
     input  logic        rreq[Np],
     output logic        rack[Np],

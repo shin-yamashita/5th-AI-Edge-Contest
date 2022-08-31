@@ -10,6 +10,7 @@ verilog work  --include "../hdl/acc" --include "./" \
 ".ip_user_files/ip/rdbuf32k/sim/rdbuf32k.v" \
 ".ip_user_files/ip/rdbuf4k/sim/rdbuf4k.v" \
 ".ip_user_files/ip/rdbuf8k/sim/rdbuf8k.v" \
+"../syn/.ip_user_files/ip/ila_0/sim/ila_0.v" \
 "sync_fifo.v" \
 
 sv work  --include "../hdl/acc" --include "./" \

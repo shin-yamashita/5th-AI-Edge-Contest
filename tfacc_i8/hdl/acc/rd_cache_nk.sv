@@ -7,13 +7,13 @@ module rd_cache_nk
     parameter NK = 32,			// NK memory size kB
     parameter debug = 0)
    (
-    input  logic    xrst,		//
+//    input  logic    xrst,		//
 
 //-- chahe clear / flush request / busy status
     input  logic    clreq,		//
 
 //-- read dta bus
-    input  logic        cclk,		//
+    input  logic        aclk,		//
     input  logic [31:0] adr,		//
     input  logic        re,		//
 //    input  logic        rdyin,		//
@@ -24,7 +24,7 @@ module rd_cache_nk
     input  logic [31:0] baseadr,	//
 
 //-- memc interface
-    input  logic        aclk,		//
+//    input  logic        aclk,		//
     input  logic        arst_n,		//
 
     output logic [39:0] awaddr,		// 0 write port not used
@@ -72,11 +72,11 @@ output logic [31:0] wptmon
 
   generate 
     case(NK)
-    2:  rdbuf2k  u_rdbuf (.*, .clka(aclk), .douta(), .clkb(cclk), .web(4'b0), .dinb(32'h0));
-    4:  rdbuf4k  u_rdbuf (.*, .clka(aclk), .douta(), .clkb(cclk), .web(4'b0), .dinb(32'h0));
-    8:  rdbuf8k  u_rdbuf (.*, .clka(aclk), .douta(), .clkb(cclk), .web(4'b0), .dinb(32'h0));
-    16: rdbuf16k u_rdbuf (.*, .clka(aclk), .douta(), .clkb(cclk), .web(4'b0), .dinb(32'h0));
-    32: rdbuf32k u_rdbuf (.*, .clka(aclk), .douta(), .clkb(cclk), .web(4'b0), .dinb(32'h0));
+    2:  rdbuf2k  u_rdbuf (.*, .clka(aclk), .douta(), .clkb(aclk), .web(4'b0), .dinb(32'h0));
+    4:  rdbuf4k  u_rdbuf (.*, .clka(aclk), .douta(), .clkb(aclk), .web(4'b0), .dinb(32'h0));
+    8:  rdbuf8k  u_rdbuf (.*, .clka(aclk), .douta(), .clkb(aclk), .web(4'b0), .dinb(32'h0));
+    16: rdbuf16k u_rdbuf (.*, .clka(aclk), .douta(), .clkb(aclk), .web(4'b0), .dinb(32'h0));
+    32: rdbuf32k u_rdbuf (.*, .clka(aclk), .douta(), .clkb(aclk), .web(4'b0), .dinb(32'h0));
     endcase
   endgenerate
 

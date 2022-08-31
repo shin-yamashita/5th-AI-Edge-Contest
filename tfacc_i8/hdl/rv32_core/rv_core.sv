@@ -330,6 +330,7 @@ parameter MTIMECMP = 32'hffff8008;
       12'hc81: csr_rd = mtime[63:32]; // timeh
       default: csr_rd = 'd0;
       endcase
+    //else csr_rd = 'd0;
   end
 
 //---- mtime register ----

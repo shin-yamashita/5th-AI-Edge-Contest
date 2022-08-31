@@ -22,7 +22,8 @@ module tb_tfacc_core();
   //----- debug -----
   import "DPI-C"  pure function int input_acces_check(int adr, int data);
 
-  logic        clk = 1;
+  logic     cclk = 1;
+  logic     aclk = 1;
   
   // tfacc_memif  sr_cpu bus
   logic [31:0]      adr;    
@@ -33,10 +34,12 @@ module tb_tfacc_core();
   logic [31:0]      dr;
   logic             irq;
   
-  always #5  clk <= !clk;	// 100MHz clock
+  always #5  cclk <= !cclk;	// 100MHz clock
+  always #3  aclk <= !aclk;	// 166MHz clock
+
 
   task reg_wr(input int a, input int data);
-//    @(posedge clk);
+//    @(posedge cclk);
     #1
     we  = 4'b1111;
     re  = 0;
@@ -44,32 +47,32 @@ module tb_tfacc_core();
     dw  = data;
 //    $display("w a: %h d:%d", adr, data);
     do
-    @(posedge clk);
+    @(posedge cclk);
     while(!rdy);
   endtask
 
   task nop();
-//    @(posedge clk);
+//    @(posedge cclk);
     #1
     we  = 0;
     re  = 0;
-    @(posedge clk);
+    @(posedge cclk);
   endtask
 
   task reg_rd(input int a, output int data);
- //   @(posedge clk);
+ //   @(posedge cclk);
     #1
     we  = 0;
     re  = 1;
     adr = a;
     do
-    @(posedge clk);
+    @(posedge cclk);
     while(!rdy);
     #1
     re  = 0;
     data = dr;
 //    $display("r a: %h d:%d", adr, data);
-    @(posedge clk);
+    @(posedge cclk);
   endtask
 
 //----------------------------------------------------------
@@ -151,7 +154,7 @@ axi_slave_bfm #(
 ) u_axi_slave_bfm
 (
     	// System Signals
-  .ACLK         (clk),       //  input ACLK,
+  .ACLK         (aclk),       //  input ACLK,
   .ARESETN      (xrst),      //  input ARESETN,
 
     	// Slave Interface Write Address Ports
@@ -210,7 +213,7 @@ axi_slave_bfm #(
 //tfacc_core u_tfacc_core( .*, .fp() );
     
 tfacc_memif #(.Np(Np),.debug(1))
-    u_tfacc_memif(.*, .cclk(clk), .xreset(xrst), .M00_AXI_ACLK(clk), .M00_AXI_ARESETN(xrst), .rdy(rdy), .dr(dr));
+    u_tfacc_memif(.*, .cclk(cclk), .xreset(xrst), .M00_AXI_ACLK(aclk), .M00_AXI_ARESETN(xrst), .rdy(rdy), .dr(dr));
 
 bit i_re[Np], i_rdy[Np];
 u32_t i_adr[Np];
@@ -222,7 +225,7 @@ generate
 //        assign i_adr[i] = tb_tfacc_core.u_tfacc_memif.u_tfacc_core.i_adr[i];
         assign in_d[i] = tb_tfacc_core.u_tfacc_memif.u_tfacc_core.in_d[i];
 //        assign i_rdy[i]  = tb_tfacc_core.u_tfacc_memif.u_tfacc_core.i_rdy[i];
-        always@(posedge clk) begin
+        always@(posedge aclk) begin
             i_re[i]  <= tb_tfacc_core.u_tfacc_memif.u_tfacc_core.i_re[i];
             i_rdy[i] <= tb_tfacc_core.u_tfacc_memif.u_tfacc_core.i_rdy[i];
             i_adr[i] <= tb_tfacc_core.u_tfacc_memif.u_tfacc_core.i_adr[i];
@@ -261,7 +264,7 @@ int runcount = 500;
 logic run, term = 0, eval = 0;
 assign run = u_tfacc_memif.u_tfacc_core.run;
 
-always@(posedge clk) begin
+always@(posedge cclk) begin
     if(we && adr == 'hffff0800) begin
         term <= dw[0];
         eval <= dw[1];

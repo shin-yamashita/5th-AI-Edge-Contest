@@ -12,6 +12,11 @@ fi
 #echo $stage $endst > stage.in
 
 xelab tb_tfacc_core glbl -timescale 1ns/1ns -prj tb_tfacc_core.prj -L unisims_ver -s tb_tfacc_core_g -sv_lib dpi -debug typical
+if [ $? -ne 0 ]; then
+  echo "xelab error"
+  exit
+fi
+
 xsc c_main.c
 
 xsim -g tb_tfacc_core_g -testplusarg b=$stage -testplusarg e=$endst --view tb_tfacc_core.wcfg --log xsim-g.log

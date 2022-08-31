@@ -9,8 +9,8 @@ module output_arb
    #(parameter Np = 1,	// Number of parallel
      parameter debug = 0)	// debug mode
     (
-    input  logic    clk,		//
-    input  logic    xrst,		//
+//    input  logic    clk,		//
+//    input  logic    xrst,		//
 
     input  logic        wreq[Np],
     output logic        wack[Np],

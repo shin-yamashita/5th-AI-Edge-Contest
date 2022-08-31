@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Sat Mar 26 22:34:30 2022" VIVADOVERSION="2020.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Tue Aug 30 22:19:01 2022" VIVADOVERSION="2020.2">
 
   <SYSTEMINFO ARCH="zynquplus" BOARD="avnet.com:ultra96v2:part0:1.2" DEVICE="xczu3eg" NAME="design_1" PACKAGE="sbva484" SPEEDGRADE="-1"/>
 
@@ -357,9 +357,9 @@
             <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk0"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="ARESETN" SIGIS="rst" SIGNAME="rst_ps8_0_100M_peripheral_aresetn">
+        <PORT DIR="I" NAME="ARESETN" SIGIS="rst" SIGNAME="rst_ps8_cclk_peripheral_aresetn">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="peripheral_aresetn"/>
+            <CONNECTION INSTANCE="rst_ps8_cclk" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="S00_ACLK" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk0">
@@ -367,9 +367,9 @@
             <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk0"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="S00_ARESETN" SIGIS="rst" SIGNAME="rst_ps8_0_100M_peripheral_aresetn">
+        <PORT DIR="I" NAME="S00_ARESETN" SIGIS="rst" SIGNAME="rst_ps8_cclk_peripheral_aresetn">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="peripheral_aresetn"/>
+            <CONNECTION INSTANCE="rst_ps8_cclk" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="M00_ACLK" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk0">
@@ -377,9 +377,9 @@
             <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk0"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="M00_ARESETN" SIGIS="rst" SIGNAME="rst_ps8_0_100M_peripheral_aresetn">
+        <PORT DIR="I" NAME="M00_ARESETN" SIGIS="rst" SIGNAME="rst_ps8_cclk_peripheral_aresetn">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="peripheral_aresetn"/>
+            <CONNECTION INSTANCE="rst_ps8_cclk" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="15" NAME="M00_AXI_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="ps8_0_axi_periph_M00_AXI_awaddr">
@@ -734,7 +734,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="13" FULLNAME="/rst_ps8_0_100M" HWVERSION="5.0" INSTANCE="rst_ps8_0_100M" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="proc_sys_reset" VLNV="xilinx.com:ip:proc_sys_reset:5.0">
+    <MODULE COREREVISION="13" FULLNAME="/rst_ps8_aclk" HWVERSION="5.0" INSTANCE="rst_ps8_aclk" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="proc_sys_reset" VLNV="xilinx.com:ip:proc_sys_reset:5.0">
       <DOCUMENTS>
         <DOCUMENT SOURCE="http://www.xilinx.com/cgi-bin/docs/ipdoc?c=proc_sys_reset;v=v5_0;d=pg164-proc-sys-reset.pdf"/>
       </DOCUMENTS>
@@ -748,7 +748,53 @@
         <PARAMETER NAME="C_NUM_PERP_RST" VALUE="1"/>
         <PARAMETER NAME="C_NUM_INTERCONNECT_ARESETN" VALUE="1"/>
         <PARAMETER NAME="C_NUM_PERP_ARESETN" VALUE="1"/>
-        <PARAMETER NAME="Component_Name" VALUE="design_1_rst_ps8_0_100M_0"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_rst_ps8_aclk_0"/>
+        <PARAMETER NAME="USE_BOARD_FLOW" VALUE="false"/>
+        <PARAMETER NAME="RESET_BOARD_INTERFACE" VALUE="Custom"/>
+        <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
+      </PARAMETERS>
+      <PORTS>
+        <PORT CLKFREQUENCY="187500000" DIR="I" NAME="slowest_sync_clk" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk1">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk1"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="ext_reset_in" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="zynq_ultra_ps_e_0_pl_resetn0">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_resetn0"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT DIR="I" NAME="aux_reset_in" POLARITY="ACTIVE_LOW" SIGIS="rst"/>
+        <PORT DIR="I" NAME="mb_debug_sys_rst" POLARITY="ACTIVE_HIGH" SIGIS="rst"/>
+        <PORT DIR="I" NAME="dcm_locked" SIGIS="undef"/>
+        <PORT DIR="O" NAME="mb_reset" POLARITY="ACTIVE_HIGH" SIGIS="rst"/>
+        <PORT DIR="O" LEFT="0" NAME="bus_struct_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
+        <PORT DIR="O" LEFT="0" NAME="peripheral_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
+        <PORT DIR="O" LEFT="0" NAME="interconnect_aresetn" POLARITY="ACTIVE_LOW" RIGHT="0" SIGIS="rst"/>
+        <PORT DIR="O" LEFT="0" NAME="peripheral_aresetn" POLARITY="ACTIVE_LOW" RIGHT="0" SIGIS="rst" SIGNAME="rst_ps8_aclk_peripheral_aresetn">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="tfacc_memif_0" PORT="M00_AXI_ARESETN"/>
+            <CONNECTION INSTANCE="smartconnect_0" PORT="aresetn"/>
+          </CONNECTIONS>
+        </PORT>
+      </PORTS>
+      <BUSINTERFACES/>
+    </MODULE>
+    <MODULE COREREVISION="13" FULLNAME="/rst_ps8_cclk" HWVERSION="5.0" INSTANCE="rst_ps8_cclk" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="proc_sys_reset" VLNV="xilinx.com:ip:proc_sys_reset:5.0">
+      <DOCUMENTS>
+        <DOCUMENT SOURCE="http://www.xilinx.com/cgi-bin/docs/ipdoc?c=proc_sys_reset;v=v5_0;d=pg164-proc-sys-reset.pdf"/>
+      </DOCUMENTS>
+      <PARAMETERS>
+        <PARAMETER NAME="C_FAMILY" VALUE="zynquplus"/>
+        <PARAMETER NAME="C_EXT_RST_WIDTH" VALUE="4"/>
+        <PARAMETER NAME="C_AUX_RST_WIDTH" VALUE="4"/>
+        <PARAMETER NAME="C_EXT_RESET_HIGH" VALUE="0"/>
+        <PARAMETER NAME="C_AUX_RESET_HIGH" VALUE="0"/>
+        <PARAMETER NAME="C_NUM_BUS_RST" VALUE="1"/>
+        <PARAMETER NAME="C_NUM_PERP_RST" VALUE="1"/>
+        <PARAMETER NAME="C_NUM_INTERCONNECT_ARESETN" VALUE="1"/>
+        <PARAMETER NAME="C_NUM_PERP_ARESETN" VALUE="1"/>
+        <PARAMETER NAME="Component_Name" VALUE="design_1_rst_ps8_cclk_0"/>
         <PARAMETER NAME="USE_BOARD_FLOW" VALUE="false"/>
         <PARAMETER NAME="RESET_BOARD_INTERFACE" VALUE="Custom"/>
         <PARAMETER NAME="EDK_IPTYPE" VALUE="PERIPHERAL"/>
@@ -771,13 +817,11 @@
         <PORT DIR="O" LEFT="0" NAME="bus_struct_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
         <PORT DIR="O" LEFT="0" NAME="peripheral_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
         <PORT DIR="O" LEFT="0" NAME="interconnect_aresetn" POLARITY="ACTIVE_LOW" RIGHT="0" SIGIS="rst"/>
-        <PORT DIR="O" LEFT="0" NAME="peripheral_aresetn" POLARITY="ACTIVE_LOW" RIGHT="0" SIGIS="rst" SIGNAME="rst_ps8_0_100M_peripheral_aresetn">
+        <PORT DIR="O" LEFT="0" NAME="peripheral_aresetn" POLARITY="ACTIVE_LOW" RIGHT="0" SIGIS="rst" SIGNAME="rst_ps8_cclk_peripheral_aresetn">
           <CONNECTIONS>
             <CONNECTION INSTANCE="ps8_0_axi_periph" PORT="ARESETN"/>
             <CONNECTION INSTANCE="ps8_0_axi_periph" PORT="S00_ARESETN"/>
             <CONNECTION INSTANCE="ps8_0_axi_periph" PORT="M00_ARESETN"/>
-            <CONNECTION INSTANCE="smartconnect_0" PORT="aresetn"/>
-            <CONNECTION INSTANCE="tfacc_memif_0" PORT="M00_AXI_ARESETN"/>
             <CONNECTION INSTANCE="tfacc_cpu_v1_0_0" PORT="s00_axi_aresetn"/>
           </CONNECTIONS>
         </PORT>
@@ -800,14 +844,14 @@
         <PARAMETER NAME="EDK_IPTYPE" VALUE="BUS"/>
       </PARAMETERS>
       <PORTS>
-        <PORT CLKFREQUENCY="125000000" DIR="I" NAME="aclk" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk0">
+        <PORT CLKFREQUENCY="187500000" DIR="I" NAME="aclk" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk1">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk0"/>
+            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk1"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="rst_ps8_0_100M_peripheral_aresetn">
+        <PORT DIR="I" NAME="aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="rst_ps8_aclk_peripheral_aresetn">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="peripheral_aresetn"/>
+            <CONNECTION INSTANCE="rst_ps8_aclk" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="3" NAME="S00_AXI_awid" RIGHT="0" SIGIS="undef" SIGNAME="smartconnect_0_S00_AXI_awid">
@@ -1165,7 +1209,7 @@
         <BUSINTERFACE BUSNAME="tfacc_memif_0_M00_AXI" DATAWIDTH="128" NAME="S00_AXI" TYPE="SLAVE" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="DATA_WIDTH" VALUE="128"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="125000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="187500000"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="4"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="40"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -1188,7 +1232,7 @@
           <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="256"/>
           <PARAMETER NAME="PHASE" VALUE="0.000"/>
-          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk0"/>
+          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk1"/>
           <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
           <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
           <PARAMETER NAME="RUSER_BITS_PER_BYTE" VALUE="0"/>
@@ -1237,7 +1281,7 @@
         <BUSINTERFACE BUSNAME="smartconnect_0_M00_AXI" DATAWIDTH="128" NAME="M00_AXI" TYPE="MASTER" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="DATA_WIDTH" VALUE="128"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="125000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="187500000"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="0"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="49"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -1260,7 +1304,7 @@
           <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="256"/>
           <PARAMETER NAME="PHASE" VALUE="0.000"/>
-          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk0"/>
+          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk1"/>
           <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
           <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
           <PARAMETER NAME="RUSER_BITS_PER_BYTE" VALUE="0"/>
@@ -1376,9 +1420,9 @@
             <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk0"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="s00_axi_aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="rst_ps8_0_100M_peripheral_aresetn">
+        <PORT DIR="I" NAME="s00_axi_aresetn" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="rst_ps8_cclk_peripheral_aresetn">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="peripheral_aresetn"/>
+            <CONNECTION INSTANCE="rst_ps8_cclk" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" LEFT="15" NAME="s00_axi_awaddr" RIGHT="0" SIGIS="undef" SIGNAME="ps8_0_axi_periph_M00_AXI_awaddr">
@@ -1588,14 +1632,14 @@
             <CONNECTION INSTANCE="tfacc_cpu_v1_0_0" PORT="irq"/>
           </CONNECTIONS>
         </PORT>
-        <PORT CLKFREQUENCY="125000000" DIR="I" NAME="M00_AXI_ACLK" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk0">
+        <PORT CLKFREQUENCY="187500000" DIR="I" NAME="M00_AXI_ACLK" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk1">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk0"/>
+            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk1"/>
           </CONNECTIONS>
         </PORT>
-        <PORT DIR="I" NAME="M00_AXI_ARESETN" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="rst_ps8_0_100M_peripheral_aresetn">
+        <PORT DIR="I" NAME="M00_AXI_ARESETN" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="rst_ps8_aclk_peripheral_aresetn">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="peripheral_aresetn"/>
+            <CONNECTION INSTANCE="rst_ps8_aclk" PORT="peripheral_aresetn"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="3" NAME="M00_AXI_AWID" RIGHT="0" SIGIS="undef" SIGNAME="smartconnect_0_S00_AXI_awid">
@@ -1793,7 +1837,7 @@
         <BUSINTERFACE BUSNAME="tfacc_memif_0_M00_AXI" DATAWIDTH="128" NAME="M00_AXI" TYPE="MASTER" VLNV="xilinx.com:interface:aximm:1.0">
           <PARAMETER NAME="DATA_WIDTH" VALUE="128"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="125000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="187500000"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="4"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="40"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="0"/>
@@ -1816,7 +1860,7 @@
           <PARAMETER NAME="NUM_WRITE_OUTSTANDING" VALUE="2"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="256"/>
           <PARAMETER NAME="PHASE" VALUE="0.000"/>
-          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk0"/>
+          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk1"/>
           <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
           <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
           <PARAMETER NAME="RUSER_BITS_PER_BYTE" VALUE="0"/>
@@ -1906,7 +1950,7 @@
         <PARAMETER NAME="C_EN_FIFO_ENET2" VALUE="0"/>
         <PARAMETER NAME="C_EN_FIFO_ENET3" VALUE="0"/>
         <PARAMETER NAME="C_PL_CLK0_BUF" VALUE="TRUE"/>
-        <PARAMETER NAME="C_PL_CLK1_BUF" VALUE="FALSE"/>
+        <PARAMETER NAME="C_PL_CLK1_BUF" VALUE="TRUE"/>
         <PARAMETER NAME="C_PL_CLK2_BUF" VALUE="FALSE"/>
         <PARAMETER NAME="C_PL_CLK3_BUF" VALUE="FALSE"/>
         <PARAMETER NAME="C_TRACE_PIPELINE_WIDTH" VALUE="8"/>
@@ -1957,7 +2001,7 @@
         <PARAMETER NAME="PSU__ENET1__PERIPHERAL__IO" VALUE="&lt;Select>"/>
         <PARAMETER NAME="PSU__ENET1__GRP_MDIO__ENABLE" VALUE="0"/>
         <PARAMETER NAME="PSU__FPGA_PL0_ENABLE" VALUE="1"/>
-        <PARAMETER NAME="PSU__FPGA_PL1_ENABLE" VALUE="0"/>
+        <PARAMETER NAME="PSU__FPGA_PL1_ENABLE" VALUE="1"/>
         <PARAMETER NAME="PSU__FPGA_PL2_ENABLE" VALUE="0"/>
         <PARAMETER NAME="PSU__FPGA_PL3_ENABLE" VALUE="0"/>
         <PARAMETER NAME="PSU__ENET1__GRP_MDIO__IO" VALUE="&lt;Select>"/>
@@ -3059,11 +3103,11 @@
         <PARAMETER NAME="PSU__SATA__LANE1__IO" VALUE="&lt;Select>"/>
         <PARAMETER NAME="PSU__CRF_APB__PCIE_REF_CTRL__DIVISOR0" VALUE="2"/>
         <PARAMETER NAME="PSU__CRL_APB__PL0_REF_CTRL__DIVISOR0" VALUE="12"/>
-        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__DIVISOR0" VALUE="15"/>
+        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__DIVISOR0" VALUE="8"/>
         <PARAMETER NAME="PSU__CRL_APB__PL2_REF_CTRL__DIVISOR0" VALUE="5"/>
         <PARAMETER NAME="PSU__CRL_APB__PL3_REF_CTRL__DIVISOR0" VALUE="4"/>
         <PARAMETER NAME="PSU__CRL_APB__PL0_REF_CTRL__DIVISOR1" VALUE="1"/>
-        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__DIVISOR1" VALUE="4"/>
+        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__DIVISOR1" VALUE="1"/>
         <PARAMETER NAME="PSU__CRL_APB__PL2_REF_CTRL__DIVISOR1" VALUE="1"/>
         <PARAMETER NAME="PSU__CRL_APB__PL3_REF_CTRL__DIVISOR1" VALUE="1"/>
         <PARAMETER NAME="PSU__CRL_APB__AMS_REF_CTRL__DIVISOR0" VALUE="29"/>
@@ -3156,7 +3200,7 @@
         <PARAMETER NAME="PSU__CRF_APB__SATA_REF_CTRL__SRCSEL" VALUE="IOPLL"/>
         <PARAMETER NAME="PSU__CRF_APB__PCIE_REF_CTRL__SRCSEL" VALUE="IOPLL"/>
         <PARAMETER NAME="PSU__CRL_APB__PL0_REF_CTRL__SRCSEL" VALUE="IOPLL"/>
-        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__SRCSEL" VALUE="RPLL"/>
+        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__SRCSEL" VALUE="IOPLL"/>
         <PARAMETER NAME="PSU__CRL_APB__PL2_REF_CTRL__SRCSEL" VALUE="RPLL"/>
         <PARAMETER NAME="PSU__CRL_APB__PL3_REF_CTRL__SRCSEL" VALUE="RPLL"/>
         <PARAMETER NAME="PSU__CRF_APB__GDMA_REF_CTRL__SRCSEL" VALUE="APLL"/>
@@ -3218,7 +3262,7 @@
         <PARAMETER NAME="PSU__OVERRIDE__BASIC_CLOCK" VALUE="1"/>
         <PARAMETER NAME="PSU__DLL__ISUSED" VALUE="1"/>
         <PARAMETER NAME="PSU__PL_CLK0_BUF" VALUE="TRUE"/>
-        <PARAMETER NAME="PSU__PL_CLK1_BUF" VALUE="FALSE"/>
+        <PARAMETER NAME="PSU__PL_CLK1_BUF" VALUE="TRUE"/>
         <PARAMETER NAME="PSU__PL_CLK2_BUF" VALUE="FALSE"/>
         <PARAMETER NAME="PSU__PL_CLK3_BUF" VALUE="FALSE"/>
         <PARAMETER NAME="PSU__CRF_APB__APLL_CTRL__FRACFREQ" VALUE="27.138"/>
@@ -3252,7 +3296,7 @@
         <PARAMETER NAME="PSU__CRF_APB__SATA_REF_CTRL__ACT_FREQMHZ" VALUE="250"/>
         <PARAMETER NAME="PSU__CRF_APB__PCIE_REF_CTRL__ACT_FREQMHZ" VALUE="250"/>
         <PARAMETER NAME="PSU__CRL_APB__PL0_REF_CTRL__ACT_FREQMHZ" VALUE="125.000000"/>
-        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__ACT_FREQMHZ" VALUE="24.999975"/>
+        <PARAMETER NAME="PSU__CRL_APB__PL1_REF_CTRL__ACT_FREQMHZ" VALUE="187.500000"/>
         <PARAMETER NAME="PSU__CRL_APB__PL2_REF_CTRL__ACT_FREQMHZ" VALUE="299.999700"/>
         <PARAMETER NAME="PSU__CRL_APB__PL3_REF_CTRL__ACT_FREQMHZ" VALUE="374.999625"/>
         <PARAMETER NAME="PSU__CRF_APB__GDMA_REF_CTRL__ACT_FREQMHZ" VALUE="600.000000"/>
@@ -3588,7 +3632,7 @@
         <PARAMETER NAME="PSU__M_AXI_GP0__FREQMHZ" VALUE="125.0"/>
         <PARAMETER NAME="PSU__M_AXI_GP1__FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PSU__M_AXI_GP2__FREQMHZ" VALUE="10"/>
-        <PARAMETER NAME="PSU__S_AXI_GP0__FREQMHZ" VALUE="125.0"/>
+        <PARAMETER NAME="PSU__S_AXI_GP0__FREQMHZ" VALUE="187.5"/>
         <PARAMETER NAME="PSU__S_AXI_GP1__FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PSU__S_AXI_GP2__FREQMHZ" VALUE="10"/>
         <PARAMETER NAME="PSU__S_AXI_GP3__FREQMHZ" VALUE="10"/>
@@ -3794,9 +3838,9 @@
             <CONNECTION INSTANCE="ps8_0_axi_periph" PORT="S00_AXI_arqos"/>
           </CONNECTIONS>
         </PORT>
-        <PORT CLKFREQUENCY="125000000" DIR="I" NAME="saxihpc0_fpd_aclk" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk0">
+        <PORT CLKFREQUENCY="187500000" DIR="I" NAME="saxihpc0_fpd_aclk" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk1">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk0"/>
+            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="pl_clk1"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="I" NAME="saxigp0_aruser" SIGIS="undef"/>
@@ -3973,21 +4017,27 @@
         <PORT DIR="I" LEFT="0" NAME="pl_ps_irq0" RIGHT="0" SENSITIVITY="LEVEL_HIGH" SIGIS="INTERRUPT"/>
         <PORT DIR="O" NAME="pl_resetn0" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="zynq_ultra_ps_e_0_pl_resetn0">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="ext_reset_in"/>
+            <CONNECTION INSTANCE="rst_ps8_cclk" PORT="ext_reset_in"/>
+            <CONNECTION INSTANCE="rst_ps8_aclk" PORT="ext_reset_in"/>
           </CONNECTIONS>
         </PORT>
         <PORT CLKFREQUENCY="125000000" DIR="O" NAME="pl_clk0" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk0">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="rst_ps8_0_100M" PORT="slowest_sync_clk"/>
+            <CONNECTION INSTANCE="rst_ps8_cclk" PORT="slowest_sync_clk"/>
             <CONNECTION INSTANCE="ps8_0_axi_periph" PORT="ACLK"/>
             <CONNECTION INSTANCE="ps8_0_axi_periph" PORT="S00_ACLK"/>
             <CONNECTION INSTANCE="ps8_0_axi_periph" PORT="M00_ACLK"/>
-            <CONNECTION INSTANCE="smartconnect_0" PORT="aclk"/>
             <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="maxihpm0_fpd_aclk"/>
-            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="saxihpc0_fpd_aclk"/>
             <CONNECTION INSTANCE="tfacc_memif_0" PORT="cclk"/>
-            <CONNECTION INSTANCE="tfacc_memif_0" PORT="M00_AXI_ACLK"/>
             <CONNECTION INSTANCE="tfacc_cpu_v1_0_0" PORT="s00_axi_aclk"/>
+          </CONNECTIONS>
+        </PORT>
+        <PORT CLKFREQUENCY="187500000" DIR="O" NAME="pl_clk1" SIGIS="clk" SIGNAME="zynq_ultra_ps_e_0_pl_clk1">
+          <CONNECTIONS>
+            <CONNECTION INSTANCE="zynq_ultra_ps_e_0" PORT="saxihpc0_fpd_aclk"/>
+            <CONNECTION INSTANCE="smartconnect_0" PORT="aclk"/>
+            <CONNECTION INSTANCE="tfacc_memif_0" PORT="M00_AXI_ACLK"/>
+            <CONNECTION INSTANCE="rst_ps8_aclk" PORT="slowest_sync_clk"/>
           </CONNECTIONS>
         </PORT>
       </PORTS>
@@ -4071,7 +4121,7 @@
           <PARAMETER NAME="NUM_READ_OUTSTANDING" VALUE="16"/>
           <PARAMETER NAME="DATA_WIDTH" VALUE="128"/>
           <PARAMETER NAME="PROTOCOL" VALUE="AXI4"/>
-          <PARAMETER NAME="FREQ_HZ" VALUE="125000000"/>
+          <PARAMETER NAME="FREQ_HZ" VALUE="187500000"/>
           <PARAMETER NAME="ID_WIDTH" VALUE="6"/>
           <PARAMETER NAME="ADDR_WIDTH" VALUE="49"/>
           <PARAMETER NAME="AWUSER_WIDTH" VALUE="1"/>
@@ -4092,7 +4142,7 @@
           <PARAMETER NAME="SUPPORTS_NARROW_BURST" VALUE="0"/>
           <PARAMETER NAME="MAX_BURST_LENGTH" VALUE="256"/>
           <PARAMETER NAME="PHASE" VALUE="0.000"/>
-          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk0"/>
+          <PARAMETER NAME="CLK_DOMAIN" VALUE="design_1_zynq_ultra_ps_e_0_0_pl_clk1"/>
           <PARAMETER NAME="NUM_READ_THREADS" VALUE="1"/>
           <PARAMETER NAME="NUM_WRITE_THREADS" VALUE="1"/>
           <PARAMETER NAME="RUSER_BITS_PER_BYTE" VALUE="0"/>

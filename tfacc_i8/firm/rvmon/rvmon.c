@@ -177,17 +177,19 @@ void set_param_and_kick()
     TFACCPARAM[21] = filH * filW * filC;    // dim123
     TFACCPARAM[22] = (outWH+pH-1)/pH;   // Nchen
 
+    *CACHECTRL = 0x0f;  // read cache invalidate (clean) request
+
   // out_x, out_y initial value set
     for(i = 0; i < Np; i++){
       int out_y = i*pH / outW;
       int out_x = i*pH % outW;
       TFACCPARAM[i+24] = (out_y<<16)|out_x;
     }
-    *CACHECTRL = 0x0f;  // read cache invalidate (clean) request
+//    *CACHECTRL = 0x0f;  // read cache invalidate (clean) request
 
 //    enable_irq();
     *TFACCFLG = 0x201;  // kick PL accelarator, inten
-//        printf("%d kick ... ", ncyc);
+    //    printf("%d kick ... ", ncyc);
 }
 
 void terminate_tfacc()
@@ -196,13 +198,13 @@ void terminate_tfacc()
     do{
         flrdy = *CACHECTRL;
     }while(flrdy != 0x40);  // wait out cache all complete
-//        printf(" out cache complete and flush request ... :%02x\n", *CACHECTRL);
+    //    printf(" out cache complete and flush request ... :%02x\n", *CACHECTRL);
     *CACHECTRL = 0xf0;      // out cache flush request
     *CACHECTRL = 0x00;
     do{
         flrdy = *CACHECTRL;
     }while(flrdy != 0x40);  // wait out cache flush complete
-//        printf("flush complete. :%02x\n", *CACHECTRL);
+    //    printf("flush complete. :%02x\n", *CACHECTRL);
     cntrun  += TFACCPARAM[0];
     cntxrdy += TFACCPARAM[1];
 

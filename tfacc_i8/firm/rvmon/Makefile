@@ -94,7 +94,7 @@ rvmon:	crt0.o $(OBJS)
 	$(CC) $(CFLAGS) -c $<
 
 install:	rvmon.mot rvmon.mem
-	cp -p rvmon.mot ../../../../infer/fpga-data
+	cp -p rvmon.mot ../../../infer/fpga-data
 	cp -p rvmon.mem ../../sim/
 
 rsync:

@@ -523,9 +523,6 @@ output_arb
      .debug(debug))	// debug mode
     u_output_arb
     (
-     .clk    (cclk),	// input  logic    clk,		//
-     .xrst   (xreset),	// input  logic    xrst,		//
-
      .wreq   (wreq),	// input  logic        wreq[Np],
      .wack   (wack),	// output logic        wack[Np],
      .wadr   (wadr),	// input  logic [31:0] wadr[Np],  
@@ -575,8 +572,8 @@ input_arb
   #(.Np     (Np),	// Number of parallel
      .debug  (debug))	// debug mode
   u_input_arb (
-    .clk        (aclk),	// input  logic    clk,                //
-    .xrst       (arst_n),	// input  logic    xrst;               //
+//    .clk        (aclk),	// input  logic    clk,                //
+//    .xrst       (arst_n),	// input  logic    xrst;               //
 
     .rreq       (rreq),	// input  logic        rreq[Np];
     .rack       (rack),	// output logic        rack[Np];
@@ -615,12 +612,9 @@ rd_cache_nk  # (.NK(32), .debug(debug) ) u_cache_filt
     (
     .rptmon(), .wptmon(),
 //-- bus
-    .cclk       (cclk),		// in  std_logic;
-    .xrst       (xreset),	// in  std_logic;
     .baseadr    (c_base),
     .adr        (c_adr),	// in  unsigned(31 downto 0);
     .re         (c_re),		// in  std_logic;
-//    .rdyin  (rdyin),	// in std_logic;
     .rdy        (c_rdy),	// out std_logic;
     .dr         (),     // out unsigned(31 downto 0);
     .dru8       (c_dr), // out u8_t
@@ -656,12 +650,9 @@ rd_cache_nk  # (.NK(4), .debug(debug) ) u_cache_bias
     (
     .rptmon(),    .wptmon(),
 //-- bus
-    .cclk       (cclk),     // in  std_logic;
-    .xrst       (xreset),   // in  std_logic;
     .baseadr    (d_base),
     .adr        (d_adr),    // in  u32_t
     .re         (d_re),     // in  std_logic;
-//    .rdyin  (1'b1),     // in  std_logic;
     .rdy        (d_rdy),    // out std_logic;
     .dr         (d_dr),     // out s32_t  bias
     .dru8       (),
@@ -697,12 +688,9 @@ rd_cache_nk  # (.NK(4), .debug(debug) ) u_cache_quant
     (
     .rptmon(),    .wptmon(),
     //-- bus
-    .cclk       (cclk),     // in  std_logic;
-    .xrst       (xreset),   // in  std_logic;
     .baseadr    (e_base),
     .adr        (e_adr),    // in  u32_t
     .re         (e_re),     // in  std_logic;
-    //    .rdyin  (1'b1),     // in  std_logic;
     .rdy        (e_rdy),    // out std_logic;
     .dr         (e_dr),     // out s32_t  bias
     .dru8       (),
@@ -779,10 +767,9 @@ rv_axi_port u_rv_axi_port (
     );
 
 tfacc_core #(.Np(Np), .debug(debug)) u_tfacc_core (
-    .clk  (cclk),    // input  logic clk,
+    .cclk  (cclk),    // input  logic clk,
     .xrst (xreset),  // input  logic xrst,
-
-    // sr_cpu bus
+    // rv_cpu bus
     .adr  (adr),    // input   logic [31:0]      adr,    
     .we   (we),     // input   logic [3:0]       we,     
     .re   (re),     // input   logic             re,     
@@ -790,6 +777,10 @@ tfacc_core #(.Np(Np), .debug(debug)) u_tfacc_core (
     .dw   (dw),     // input   logic [31:0]      dw,     
     .dr   (t_dr),     // output  logic [31:0]      dr,
     .irq  (irq),    // output  logic             irq,
+
+    .aclk (aclk),
+    .arst_n(arst_n),
+
     // cache bus a : output
     .wreq     (wreq), // input  logic        wreq[Np],
     .wack     (wack), // output logic        wack[Np],

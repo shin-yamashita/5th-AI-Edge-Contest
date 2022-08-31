@@ -10,7 +10,7 @@
       "validated": "true"
     },
     "design_tree": {
-      "rst_ps8_0_100M": "",
+      "rst_ps8_cclk": "",
       "ps8_0_axi_periph": {
         "s00_couplers": {
           "auto_ds": "",
@@ -20,7 +20,8 @@
       "smartconnect_0": "",
       "zynq_ultra_ps_e_0": "",
       "tfacc_memif_0": "",
-      "tfacc_cpu_v1_0_0": ""
+      "tfacc_cpu_v1_0_0": "",
+      "rst_ps8_aclk": ""
     },
     "ports": {
       "RXD_0": {
@@ -41,11 +42,11 @@
       }
     },
     "components": {
-      "rst_ps8_0_100M": {
+      "rst_ps8_cclk": {
         "vlnv": "xilinx.com:ip:proc_sys_reset:5.0",
-        "xci_name": "design_1_rst_ps8_0_100M_0",
-        "xci_path": "ip/design_1_rst_ps8_0_100M_0/design_1_rst_ps8_0_100M_0.xci",
-        "inst_hier_path": "rst_ps8_0_100M"
+        "xci_name": "design_1_rst_ps8_cclk_0",
+        "xci_path": "ip/design_1_rst_ps8_cclk_0/design_1_rst_ps8_cclk_0.xci",
+        "inst_hier_path": "rst_ps8_cclk"
       },
       "ps8_0_axi_periph": {
         "vlnv": "xilinx.com:ip:axi_interconnect:2.1",
@@ -2074,13 +2075,19 @@
             "value": "IOPLL"
           },
           "PSU__CRL_APB__PL1_REF_CTRL__ACT_FREQMHZ": {
-            "value": "24.999975"
+            "value": "187.500000"
           },
           "PSU__CRL_APB__PL1_REF_CTRL__DIVISOR0": {
-            "value": "15"
+            "value": "8"
           },
           "PSU__CRL_APB__PL1_REF_CTRL__DIVISOR1": {
-            "value": "4"
+            "value": "1"
+          },
+          "PSU__CRL_APB__PL1_REF_CTRL__FREQMHZ": {
+            "value": "100"
+          },
+          "PSU__CRL_APB__PL1_REF_CTRL__SRCSEL": {
+            "value": "IOPLL"
           },
           "PSU__CRL_APB__PL2_REF_CTRL__ACT_FREQMHZ": {
             "value": "299.999700"
@@ -2647,7 +2654,7 @@
             "value": "1"
           },
           "PSU__FPGA_PL1_ENABLE": {
-            "value": "0"
+            "value": "1"
           },
           "PSU__FPGA_PL2_ENABLE": {
             "value": "0"
@@ -3145,6 +3152,9 @@
             "value": "0"
           },
           "PSU__PL_CLK0_BUF": {
+            "value": "TRUE"
+          },
+          "PSU__PL_CLK1_BUF": {
             "value": "TRUE"
           },
           "PSU__PL__POWER__ON": {
@@ -3863,7 +3873,7 @@
                 "value_src": "constant"
               },
               "FREQ_HZ": {
-                "value": "125000000",
+                "value": "187500000",
                 "value_src": "user_prop"
               },
               "ID_WIDTH": {
@@ -3951,7 +3961,7 @@
                 "value_src": "auto"
               },
               "CLK_DOMAIN": {
-                "value": "design_1_zynq_ultra_ps_e_0_0_pl_clk0",
+                "value": "design_1_zynq_ultra_ps_e_0_0_pl_clk1",
                 "value_src": "default_prop"
               }
             },
@@ -4223,11 +4233,11 @@
                 "value_src": "constant"
               },
               "FREQ_HZ": {
-                "value": "125000000",
+                "value": "187500000",
                 "value_src": "user_prop"
               },
               "CLK_DOMAIN": {
-                "value": "design_1_zynq_ultra_ps_e_0_0_pl_clk0",
+                "value": "design_1_zynq_ultra_ps_e_0_0_pl_clk1",
                 "value_src": "default_prop"
               }
             }
@@ -4579,6 +4589,12 @@
             }
           }
         }
+      },
+      "rst_ps8_aclk": {
+        "vlnv": "xilinx.com:ip:proc_sys_reset:5.0",
+        "xci_name": "design_1_rst_ps8_aclk_0",
+        "xci_path": "ip/design_1_rst_ps8_aclk_0/design_1_rst_ps8_aclk_0.xci",
+        "inst_hier_path": "rst_ps8_aclk"
       }
     },
     "interface_nets": {
@@ -4586,12 +4602,6 @@
         "interface_ports": [
           "ps8_0_axi_periph/M00_AXI",
           "tfacc_cpu_v1_0_0/s00_axi"
-        ]
-      },
-      "tfacc_memif_0_M00_AXI": {
-        "interface_ports": [
-          "smartconnect_0/S00_AXI",
-          "tfacc_memif_0/M00_AXI"
         ]
       },
       "smartconnect_0_M00_AXI": {
@@ -4605,38 +4615,40 @@
           "zynq_ultra_ps_e_0/M_AXI_HPM0_FPD",
           "ps8_0_axi_periph/S00_AXI"
         ]
+      },
+      "tfacc_memif_0_M00_AXI": {
+        "interface_ports": [
+          "smartconnect_0/S00_AXI",
+          "tfacc_memif_0/M00_AXI"
+        ]
       }
     },
     "nets": {
       "zynq_ultra_ps_e_0_pl_clk0": {
         "ports": [
           "zynq_ultra_ps_e_0/pl_clk0",
-          "rst_ps8_0_100M/slowest_sync_clk",
+          "rst_ps8_cclk/slowest_sync_clk",
           "ps8_0_axi_periph/ACLK",
           "ps8_0_axi_periph/S00_ACLK",
           "ps8_0_axi_periph/M00_ACLK",
-          "smartconnect_0/aclk",
           "zynq_ultra_ps_e_0/maxihpm0_fpd_aclk",
-          "zynq_ultra_ps_e_0/saxihpc0_fpd_aclk",
           "tfacc_memif_0/cclk",
-          "tfacc_memif_0/M00_AXI_ACLK",
           "tfacc_cpu_v1_0_0/s00_axi_aclk"
         ]
       },
       "zynq_ultra_ps_e_0_pl_resetn0": {
         "ports": [
           "zynq_ultra_ps_e_0/pl_resetn0",
-          "rst_ps8_0_100M/ext_reset_in"
+          "rst_ps8_cclk/ext_reset_in",
+          "rst_ps8_aclk/ext_reset_in"
         ]
       },
       "rst_ps8_0_100M_peripheral_aresetn": {
         "ports": [
-          "rst_ps8_0_100M/peripheral_aresetn",
+          "rst_ps8_cclk/peripheral_aresetn",
           "ps8_0_axi_periph/ARESETN",
           "ps8_0_axi_periph/S00_ARESETN",
           "ps8_0_axi_periph/M00_ARESETN",
-          "smartconnect_0/aresetn",
-          "tfacc_memif_0/M00_AXI_ARESETN",
           "tfacc_cpu_v1_0_0/s00_axi_aresetn"
         ]
       },
@@ -4710,6 +4722,22 @@
         "ports": [
           "tfacc_memif_0/irq",
           "tfacc_cpu_v1_0_0/irq"
+        ]
+      },
+      "zynq_ultra_ps_e_0_pl_clk1": {
+        "ports": [
+          "zynq_ultra_ps_e_0/pl_clk1",
+          "zynq_ultra_ps_e_0/saxihpc0_fpd_aclk",
+          "smartconnect_0/aclk",
+          "tfacc_memif_0/M00_AXI_ACLK",
+          "rst_ps8_aclk/slowest_sync_clk"
+        ]
+      },
+      "rst_ps8_aclk_peripheral_aresetn": {
+        "ports": [
+          "rst_ps8_aclk/peripheral_aresetn",
+          "tfacc_memif_0/M00_AXI_ARESETN",
+          "smartconnect_0/aresetn"
         ]
       }
     },

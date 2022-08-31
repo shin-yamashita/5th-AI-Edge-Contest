@@ -10,7 +10,7 @@
 
 module u8adrgen #(parameter Np = 1)
   (
-  input  logic clk,
+  input  logic cclk,
   input  logic xrst,
 //
   input  logic kick,	// start 1 frame sequence
@@ -22,6 +22,8 @@ module u8adrgen #(parameter Np = 1)
   input  u32_t pdata,	// param write data
   output u32_t prdata,	//       read data
 
+  input  logic aclk,
+  input  logic arst_n,
 // address
   output u24_t in_adr[Np], // input addr (byte)
   output logic valid[Np],  // in_adr valid
@@ -36,7 +38,9 @@ module u8adrgen #(parameter Np = 1)
   output logic chen[Np],	// para channel enable
 
 // running flag
-  output logic run,	// 1 : running 
+  output logic run,	// cclk 1 : running 
+
+  output logic run_s,	// aclk 1 : running 
 
 // u8mac control
   output logic aen,	// acc en
@@ -64,7 +68,7 @@ module u8adrgen #(parameter Np = 1)
  assign fil_adr = rdy ? fil_adr_i : fil_adr_h;
  assign aen = rdy ? aen_i : aen_h;
 
- always@(posedge clk) begin
+ always@(posedge aclk) begin
   if(!xrst) begin
     aen_h <= 1'b0;
   end else begin
@@ -129,14 +133,24 @@ module u8adrgen #(parameter Np = 1)
     prdata <= 'd0;
  end
 ---------*/
- always@(posedge clk) begin
-  if(kick) begin
+ logic kick_s, run_ss, rdy_s;
+ always@(posedge cclk) begin
+  run_ss <= run_s;
+  rdy_s <= rdy;
+  if(!xrst) begin
+    kick_s <= 1'b0;
+  end else if(kick) begin
+    kick_s <= 1'b1;
     cntrun <= 'd0;
     cntxrdy <= 'd0;
   end else begin
-    if(run) cntrun <= cntrun + 1;
-    if(run && !rdy) cntxrdy <= cntxrdy + 1;
+    if(run_ss) begin
+      cntrun <= cntrun + 1;
+      kick_s <= 1'b0;
+    end
+    if(run_ss && !rdy_s) cntxrdy <= cntxrdy + 1;
   end
+  run <= kick_s | run_ss;
   if(pre)
     case(padr)
      0: prdata <= cntrun;
@@ -153,6 +167,7 @@ module u8adrgen #(parameter Np = 1)
  s12_t in_x[Np],  in_y[Np];
  s12_t in_xo[Np], in_yo[Np];
  u11_t  out_x[Np], out_y[Np];
+ u11_t  out_xh[Np], out_yh[Np];
  u11_t out_c, in_c;
  u3_t  fil_x,  fil_y;
  s28_t in_a[Np];
@@ -160,7 +175,7 @@ module u8adrgen #(parameter Np = 1)
 
  assign dw_c = depthmul ? out_c : in_c;
 
- always@(posedge clk) begin
+ always@(posedge aclk) begin
    for(int i = 0; i < Np; i++) begin
      in_xo[i] <= signed'((out_x[i] * strW) - padW);
      in_yo[i] <= signed'((out_y[i] * strH) - padH);
@@ -180,14 +195,9 @@ module u8adrgen #(parameter Np = 1)
  assign rdy = in_rdy && fil_rdy && bias_rdy;
  logic [2:0] ncalc;
 
-/*---- Conv3quant ---*/
- always@(posedge clk) begin
-  if(!xrst) begin
-    state <= Idle;
-    chen   <= '{Np{'b0}};
-  end
 // params
-  if(pwe) begin
+ always@(posedge cclk) begin
+    if(pwe) begin
     case(padr)
      0: inH <= pdata;
      1: inW <= pdata;
@@ -214,6 +224,22 @@ module u8adrgen #(parameter Np = 1)
     22: n_chen <= pdata;	// (outWH+pH-1)/pH
     default: ;
     endcase
+
+    for(int i = 0; i < Np; i++) begin
+      if(padr == i + 24) begin
+        out_yh[i] <= pdata[26:16];
+        out_xh[i] <= pdata[10:0];
+      end
+    end
+  end
+ end
+/*---- Conv3quant ---*/
+ logic kick_as;
+ always@(posedge aclk) begin
+  kick_as <= kick_s;
+  if(!arst_n) begin
+    state <= Idle;
+    chen   <= '{Np{'b0}};
   end
 
 // output address counter
@@ -231,12 +257,10 @@ module u8adrgen #(parameter Np = 1)
       end
     end
   end else begin
-    if(pwe) begin
+    if(kick_as) begin
         for(int i = 0; i < Np; i++) begin
-          if(padr == i + 24) begin
-            out_y[i] <= pdata[26:16];
-            out_x[i] <= pdata[10:0];
-          end
+            out_y[i] <= out_yh[i];
+            out_x[i] <= out_xh[i];
         end
      end
   end
@@ -249,13 +273,13 @@ module u8adrgen #(parameter Np = 1)
   end
 
   if(state == Idle) begin
-    if(kick) begin
+    if(kick_as) begin
       state  <= AccClear;
       calc   <= 1'b1;
     end else begin
       calc   <= 1'b0;
     end
-    run    <= 1'b0;
+    run_s    <= 1'b0;
     out_a  <= 0;
     out_c  <= 0;
     fil_y  <= 0;
@@ -292,7 +316,7 @@ module u8adrgen #(parameter Np = 1)
    	acl    <= 1'b0;
     outtc  <= 1'b0;
     ncalc  <= 'd0;
-    run    <= 1'b1;
+    run_s    <= 1'b1;
 
     if(rdy) begin
       if(in_c < ch2C-1) begin
@@ -358,7 +382,8 @@ module u8adrgen #(parameter Np = 1)
   	end
     if(acvalid && out_rdy) begin // output write last 1 data
       acl <= 1'b1;
-      run <= 1'b0;
+
+      run_s <= 1'b0;
       state <= Idle;
     end
   end

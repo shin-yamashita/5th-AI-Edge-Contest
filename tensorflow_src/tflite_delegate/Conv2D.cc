@@ -300,14 +300,41 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
             outH,outW,outC, filH,filW,filC, inH,inW,inC,
             depthmul,strH,strW,dilH,dilW,padH,padW);
 
+//-- channel parallel test
+    int filter_ttl = filter->bytes;
+    int filp_inc = filH * filW * ch2C;
+    if(filter_ttl % 4) {
+        fprintf(stderr, "filter_ttl (%d) is not a multiple of 4\n", filter_ttl);
+        int nfilp = (filter_ttl / filp_inc);
+        filter_ttl = (filter_ttl + 3) & ~3;
+    }
+    uint32* filpdata = (uint32*)malloc(filter_ttl);
+    uint8*  filpdatapt = (uint8*)filpdata;
+
+    for (int out_xy = 0; out_xy < outH*outW; ++out_xy) {
+        for (int out_c = 0; out_c < ch1C*depthmul; out_c++) {
+            int ch = out_c & 0x3;
+            const int ch1 = out_c / depthmul;
+            const int8* filpt = dwen ? &filter_data[out_c] : &filter_data[fil_size * ch1];
+            for (int ix = 0; ix < filH*filW*ch2C; ++ix) {
+                uint8 fil_d = *filpt;
+                filpt += finc;
+                filpdatapt[ix * 4 + ch] = fil_d;
+            }
+            if(ch == 3)
+                filpdatapt += filp_inc * 4;
+        }
+
+    }
+
     /*    fprintf(stderr,"%2d in:%p,%d fil:%p bias:%p out:%p,%d %x\n", n_stage, input_data, in_cma((void*)input_data), filter_data, bias_data, output_data,
  in_cma(output_data), (uint32_t)cma_get_phy_addr(output_data));
      */
     int8* outpt = output_data;
     //    uint8* refout = (uint8*)malloc(output->bytes);
     //    uint8* outpt = refout;
-
     int in_y0 = - padH;
+
     for (int out_y = 0; out_y < outH; ++out_y, in_y0 += strH) {
         int in_x0 = - padW;
         for (int out_x = 0; out_x < outW; ++out_x, in_x0 += strW) {

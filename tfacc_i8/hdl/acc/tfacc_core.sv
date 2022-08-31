@@ -9,7 +9,7 @@ module tfacc_core
     #(parameter Np = 1,
       parameter debug = 0)
   (
-    input  logic clk,
+    input  logic cclk,
     input  logic xrst,
 
     // sr_cpu bus
@@ -20,7 +20,9 @@ module tfacc_core
     input  u32_t dw,  
     output u32_t dr,
     output logic irq,
-        
+
+    input  logic aclk,
+    input  logic arst_n,
     // cache bus a output
     output logic wreq[Np],	// write request (512B burst)
     input  logic wack[Np],	// write ack/enable
@@ -81,7 +83,7 @@ u32_t pdata, prdata;
 u24_t in_adr[Np], out_adr[Np];
 u24_t fil_adr;
 u12_t bias_adr, quant_adr;
-logic fil_rdy, out_rdy, bias_rdy, quant_rdy, run, aen, acl, acvalid, mac_rdy, out_cmpl;
+logic fil_rdy, out_rdy, bias_rdy, quant_rdy, run, run_s, aen, acl, acvalid, mac_rdy, out_cmpl;
 logic aen_1d, acl_1d;
 logic valid[Np], ivalid[Np], acv[Np];
 s8_t  accd[Np];
@@ -102,6 +104,7 @@ logic i_rdy[Np];    //
 s8_t  in_d[Np];
 u32_t i_adr[Np];    // input addr (byte)
 logic civ;          // input cache invalidate
+logic civ_as;
 
 logic o_rdy[Np], o_cmpl[Np];	//
 u32_t o_adr[Np];    // output addr (byte)
@@ -109,7 +112,8 @@ u8_t  o_dw[Np];     // uint8
 logic oen[Np];      // output enable
 logic chen[Np];     // para channel enable
 
-u4_t flreq, clbsy;
+u4_t flreq;
+u4_t flreq_as;
 logic [Np-1:0] flbsy;
 
 assign rbase = baseadr[1];
@@ -123,14 +127,14 @@ assign fil_d = c_dr;    // u8
 
 assign d_base = baseadr[3];
 assign d_adr = {bias_adr,2'b00};
-assign d_re  = run;
+assign d_re  = run_s;
 assign bias_rdy = d_rdy;
 //assign bias  = d_dr; // s32
 
 assign quant_adr = bias_adr;
 assign e_base = baseadr[4];
 assign e_adr = {quant_adr,2'b00};
-assign e_re  = run;
+assign e_re  = run_s;
 assign quant_rdy = e_rdy;
 //assign quant  = e_dr; // u32
 assign out_mult = quant[31:15];
@@ -144,7 +148,7 @@ assign out_rdy  = and_unpack(o_rdy);
 assign out_cmpl = and_unpack(o_cmpl);
 assign in_rdy   = and_unpack(i_rdy);
 
-always_ff@(posedge clk) begin
+always_ff@(posedge aclk) begin
   bias  <= d_dr; // s32
   quant <= e_dr; // u32
 
@@ -167,10 +171,10 @@ generate
     assign o_dw[i]  = accd[i];
 
     input_cache u_input_cache (
-      .clk  (clk),        //  input  logic   clk,
-      .xrst (xrst & chen[i]),// input logic  xrst,
+      .clk  (aclk),        //  input  logic   clk,
+      .xrst (arst_n & chen[i]),// input logic  xrst,
 
-      .civ  (civ),        //  input  logic  cache invalidate
+      .civ  (civ_as),        //  input  logic  cache invalidate
 
     // i8mac
       .re   (i_re[i]),    //  input  logic  input data read enable
@@ -187,11 +191,11 @@ generate
     );
     output_cache u_output_cache
       (
-      .clk  (clk),          // input  logic
-      .xrst (xrst & chen[i]),// input  logic
+      .clk  (aclk),          // input  logic
+      .xrst (arst_n & chen[i]),// input  logic
 
-      .civ  (civ),          // input  logic cache invalidate
-      .flreq(flreq[0]),     // input  logic flush request
+      .civ  (civ_as),          // input  logic cache invalidate
+      .flreq(flreq_as[0]),     // input  logic flush request
       .flbsy(flbsy[i]),     // out logic       busy
 
     // i8mac
@@ -211,8 +215,8 @@ generate
     );
 
     i8mac u_i8mac (
-     .clk       (clk),             //in                clk     , //
-     .xreset    (xrst),            //in                xreset  , //
+     .clk       (aclk),             //in                clk     , //
+     .xreset    (arst_n),            //in                xreset  , //
      .aen       (aen_1d),          //in                aen     , // acc enable
      .acl       (acl_1d),          //in                acl     , // acc clear
      .rdy       (mac_rdy),         //in                rdy     , // memory read data ready
@@ -252,8 +256,9 @@ assign cs_prm = ({adr[31:9],1'b0} == 24'hffff04);  // ffff0400 - ffff05ff 128wor
 //assign flreq = (cs_cache && we[3]) ? dw[31:28] : 4'b0000;
 //assign clreq = (cs_cache && we[3]) ? dw[27:24] : 4'b0000;
 assign flreq = (cs_cache && we[0]) ? dw[7:4] : 4'b0000;
-assign clreq = (cs_cache && we[0]) ? dw[3:0] : 4'b0000;
-assign civ = clreq[0];
+u4_t clreq_i;
+assign clreq_i = (cs_cache && we[0]) ? dw[3:0] : 4'b0000;
+assign civ = clreq_i[0];
 
 assign pwe   = cs_prm & (we != 4'b0000);
 assign pre   = cs_prm & re;
@@ -265,7 +270,69 @@ assign rdy   = 1'b1;
 
 assign flbsyflg = flbsy != 0;
 
-always@(posedge clk) begin
+// cclk <-> aclk async i/f
+
+u4_t flreq_c, flreq_cs, flreq_a[2];
+u4_t clreq_c, clreq_cs, clreq_a;
+logic civ_c, civ_cs, civ_a[2];
+logic flbsyflg_a, flbsyflg_c;
+logic out_cmpl_a, out_cmpl_c;
+assign clreq = clreq_a;
+
+always@(posedge aclk) begin
+  flbsyflg_a <= flbsyflg;
+  out_cmpl_a <= out_cmpl;
+
+  if(!arst_n) begin
+    flreq_a  <= {'0, '0};
+    clreq_a <= '0;
+    flreq_as <= 1'b0;
+    civ_a  <= {1'b0, 1'b0};
+    civ_as <= 1'b0;
+  end else begin
+    flreq_a[0] <= flreq_c;
+    flreq_a[1] <= flreq_a[0];
+    flreq_as <= flreq_a[0] & ~flreq_a[1];
+    clreq_a <= clreq_c;
+    civ_a[0] <= civ_c;
+    civ_a[1] <= civ_a[0];
+    civ_as <= civ_a[0] & ~civ_a[1];
+  end
+end
+
+always@(posedge cclk) begin
+  flbsyflg_c <= flreq_c ? 1'b1 : flbsyflg_a;
+  out_cmpl_c <= flreq_c ? 1'b0 : out_cmpl_a;
+
+  flreq_cs <= flreq_a[1];
+  clreq_cs <= clreq_a;
+  if(!xrst) begin
+    flreq_c <= '0;
+    clreq_c <= '0;
+    civ_c <= '0;
+    civ_cs <= '0;
+  end else begin 
+    if(flreq) begin
+      flreq_c <= flreq; // set
+    end else if(flreq_cs) begin
+      flreq_c <= flreq_c & ~flreq_cs;
+    end
+    if(clreq_i) begin
+      clreq_c <= clreq_i; // set
+    end else if(clreq_cs) begin
+      clreq_c <= clreq_c & ~clreq_cs;
+    end
+    civ_cs <= civ_a[1];
+    if(civ) begin
+      civ_c <= '1;
+    end else if(civ_cs) begin
+      civ_c <= '0;
+    end
+  end 
+end
+
+
+always@(posedge cclk) begin
   if(!xrst) begin
       monisel <= 4'h0;
   end else begin
@@ -311,14 +378,14 @@ always@(posedge clk) begin
     endcase
   end else if(cs_cache & re) begin
 //    flgdr <= {flbsyflg, out_cmpl, 30'h0000000};
-    flgdr <= {flbsyflg, out_cmpl, 6'h0};
+    flgdr <= {flbsyflg_c, out_cmpl_c, 6'h0};  // 
  end else flgdr <= 32'h00000000;
 end
 
 
 u8adrgen #(.Np(Np)) u_u8adrgen
   (
-  .clk      (clk),          //  input  logic clk,
+  .cclk     (cclk),          //  input  logic clk,
   .xrst     (xrst),         //  input  logic xrst,
 //
   .kick     (kick),         //  input  logic kick,     // start 1 frame sequence
@@ -329,6 +396,9 @@ u8adrgen #(.Np(Np)) u_u8adrgen
   .padr     (padr),         //  input  u8_t  padr,     // param addr 0 to 19
   .pdata    (pdata),        //  input  u32_t pdata,    // param write data
   .prdata   (prdata),       //  output u32_t prdata,   //       read data
+
+  .aclk     (aclk),
+  .arst_n   (arst_n),
 // address
   .in_adr   (in_adr),       //  output u24_t in_adr[Np], // input addr (byte)
   .valid    (valid),        //  output logic valid[Np],  // in_adr valid
@@ -343,7 +413,9 @@ u8adrgen #(.Np(Np)) u_u8adrgen
   .chen     (chen),         //  output logic chen[Np], // para channel enable
 
 // running flag
-  .run      (run),          //  output logic run,      // 1 : running 
+  .run      (run),          //  output logic run,      // cclk 1 : running 
+  
+  .run_s    (run_s),        //  output logic run,      // aclk 1 : running 
 
 // i8mac control
   .aen      (aen),          //  output logic aen,      // acc en
@@ -381,7 +453,28 @@ ila_0 u_ila (
           {run,aen_1d,acl_1d,acvalid,mac_rdy,ivalid[0],in_rdy,fil_rdy}) // input wire [7:0]  probe4
          // 7     6     5      4       3         2       1        0
 );
----*/
+--*/
+u16_t probe0;
+assign probe0 = {
+  run,
+  cs_cache,
+  cs_flg,
+  cs_prm,
+  pwe,
+  pre,
+  kick,
+  flreq_c[0],
+  civ_c,
+  flbsyflg_c,
+  out_cmpl_c,
+  inten,
+  cmpl
+  };
+
+ila_0 u_ila (
+	.clk(cclk), // input wire clk
+  .probe0(probe0) // input wire [15:0]  probe0  
+);
 
 endmodule
 

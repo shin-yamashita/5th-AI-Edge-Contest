@@ -53,14 +53,19 @@ logic cs_d;    //	: std_logic;
 logic req2, wrq2, ack2, re1; //	: std_logic;
 
 //-- chip select
- assign cs_d = adr[31:16] >= BASE && adr[31:16] <= LAST;
+// assign cs_d = adr[31:16] >= BASE && adr[31:16] <= LAST;
+ assign cs_d = 1'b0;    // disable
  assign req2 = cs_d && (re || (we != '0));
  assign wrq2 = cs_d && (we != '0);
 // rdy <= '0' when cs_d = '1' and hit = '0' and (we /= 0 or re = '1')	else '1';
 
- assign rdy = !req2 || rvalid || wready || !xrst;
- assign dr = re1 ? rd_data : '0;
- assign wr_data = dw;
+// assign rdy = !req2 || rvalid || wready || !xrst;
+// assign dr = re1 ? rd_data : '0;
+// assign wr_data = dw;
+ assign rdy = 1'b1; //
+ assign dr = '0;
+ assign wr_data = '0;
+
 //-- axi sequencer
 
 // web <= (ren2e,ren2e,ren2e,ren2e);
@@ -73,7 +78,7 @@ logic req2, wrq2, ack2, re1; //	: std_logic;
         rready <= '0;
         re1 <= '0;
     end else begin
-        re1 <= cs_d & re;
+//        re1 <= cs_d & re;
         case(mst)
         Idle: begin
             ack2 <= '0;
