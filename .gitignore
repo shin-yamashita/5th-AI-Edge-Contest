@@ -30,3 +30,17 @@
 *.exe
 *.out
 *.app
+
+tfacc_i8/syn/bd125M125M/
+
+tfacc_i8/syn/bd125M136M/
+
+tfacc_i8/syn/bd125M150M/
+
+tfacc_i8/syn/bd125M187M/
+
+tfacc_i8/syn/rev_125_125/
+
+tfacc_i8/syn/rev_125_150/
+
+tfacc_i8/syn/rev_125_187/
