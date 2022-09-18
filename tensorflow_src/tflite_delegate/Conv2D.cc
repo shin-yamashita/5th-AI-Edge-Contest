@@ -8,7 +8,7 @@ namespace tflite {
 //--- for tfacc_u8 debug ----
 static int accmax = 0;
 static int n_stage = 0;
-static int dumpfrom = 72;
+static int dumpfrom = 72;    // 72
 static int dumpto = 71;
 static FILE *dfp1 = NULL;
 
@@ -159,6 +159,9 @@ void short_dump(int nst, const int8* in, const int8* fil, const int32* b, int32_
     printf("\n");
 
 }
+int8 limit_i8(int32 x){
+    return x < -128 ? -128 : (x >= 127 ? 127 : x);
+}
 
 TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
         int nix,
@@ -296,37 +299,105 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
     }
     fprintf(stderr,"%2d %sconv: (acc x %d >>%2d+15)%+4d ",n_stage, dwen?"dw":"  ",
             output_multiplier[0]>>16,(int8)(output_multiplier[0]&0xff),out_offs);
-    fprintf(stderr,"o: %3d %3d %3d f: %3d %3d %3d i: %3d %3d %3d  %d  %d %d  %d %d  %d %d\n",
-            outH,outW,outC, filH,filW,filC, inH,inW,inC,
+    fprintf(stderr,"o: %3d %3d %3d f: %3d %3d %3d (%4x) i: %3d %3d %3d  %d  %d %d  %d %d  %d %d\n",
+            outH,outW,outC, filH,filW,filC, fil_size, inH,inW,inC,
             depthmul,strH,strW,dilH,dilW,padH,padW);
 
+#define CH_PARA
+
+#ifdef CH_PARA
 //-- channel parallel test
-    int filter_ttl = filter->bytes;
     int filp_inc = filH * filW * ch2C;
-    if(filter_ttl % 4) {
-        fprintf(stderr, "filter_ttl (%d) is not a multiple of 4\n", filter_ttl);
-        int nfilp = (filter_ttl / filp_inc);
-        filter_ttl = (filter_ttl + 3) & ~3;
+    int Noutc = ch1C*depthmul;
+    if(Noutc % 4) {
+        fprintf(stderr, "Noutc (%d) is not a multiple of 4\n", Noutc);
+        Noutc = (Noutc + 3) & ~3;
     }
+    int filter_ttl = filp_inc * Noutc;
     uint32* filpdata = (uint32*)malloc(filter_ttl);
-    uint8*  filpdatapt = (uint8*)filpdata;
-
-    for (int out_xy = 0; out_xy < outH*outW; ++out_xy) {
-        for (int out_c = 0; out_c < ch1C*depthmul; out_c++) {
-            int ch = out_c & 0x3;
-            const int ch1 = out_c / depthmul;
-            const int8* filpt = dwen ? &filter_data[out_c] : &filter_data[fil_size * ch1];
-            for (int ix = 0; ix < filH*filW*ch2C; ++ix) {
-                uint8 fil_d = *filpt;
-                filpt += finc;
-                filpdatapt[ix * 4 + ch] = fil_d;
-            }
-            if(ch == 3)
-                filpdatapt += filp_inc * 4;
+    int8*  filpdatapt = (int8*)filpdata;
+    // re-order filter access sequence
+//    fprintf(stderr, "filp_inc:%d filter_ttl:%d (+%d) ch1C*depthmul:%d Noutc:%d\n", filp_inc, filter_ttl, filter_ttl-filter->bytes, ch1C*depthmul, Noutc);
+    for (int out_c = 0; out_c < ch1C*depthmul; out_c++) {
+        int ch = out_c & 0x3;
+        const int ch1 = out_c / depthmul;
+        const int8* filpt = dwen ? &filter_data[out_c] : &filter_data[fil_size * ch1];
+        for (int ix = 0; ix < filH*filW*ch2C; ++ix) {
+            int8 fil_d = *filpt;
+            filpt += finc;
+            filpdatapt[ix * 4 + ch] = fil_d;
         }
-
+        if(ch == 3)
+            filpdatapt += filp_inc * 4;
     }
+    if(0 && n_stage == 1){
+        printf("o: %3d %3d %3d f: %3d %3d %3d (%4x) i: %3d %3d %3d\n",
+            outH,outW,outC, filH,filW,filC, fil_size, inH,inW,inC);
+        for(int i = 0; i < 64; i++) printf(" %02x", (uint8_t)filter_data[i]);
+        printf("\n");
+        for(int i = 0; i < 64; i+=4) printf("%d %08x\n", i, filpdata[i/4]);
+    }
+    int8* outpt = output_data;
+    int in_y0 = - padH;
+    int ncc;
+    for (int out_y = 0; out_y < outH; ++out_y, in_y0 += strH) {
+        int in_x0 = - padW;
+        for (int out_x = 0; out_x < outW; ++out_x, in_x0 += strW) {
+            filpdatapt = (int8*)filpdata;   // reset filter pointer
+            for (int out_c = 0; out_c < ch1C*depthmul; out_c += 4) {
+                const int ch1 = out_c / depthmul;
+                int32 acc[4] = {0,0,0,0};
+                //const int8* filpt = dwen ? &filter_data[out_c] : &filter_data[fil_size * ch1];
+                for (int fil_y = 0; fil_y < filH; ++fil_y) {
+                    const int in_y = in_y0 + dilH * fil_y;
+                    const int in_y_valid = (in_y >= 0) && (in_y < inH);
+                    const int in_y_ofs = in_y * inW * inC;
+                    const int8* inpt = dwen ? &input_data[in_y_ofs + ch1] : &input_data[in_y_ofs];
+                    for (int fil_x = 0; fil_x < filW; ++fil_x) {
+                        const int in_x = in_x0 + dilW * fil_x;
+                        const int in_valid = (in_x >= 0) && (in_x < inW) && in_y_valid;
+                        const int8* inpt2 = &inpt[in_x * inC];
+                        for (int in_c = 0; in_c < ch2C; ++in_c) {
+                            // If the location is outside the bounds of the input image,
+                            // use zero as a default value.
+                            for(int cc = 0; cc < 4; cc++){
+                                //int32 fil_d = *filpt;
+                                int32 fil_d = filpdatapt[cc];
+                                //filpt += finc;
+                                int32 in_d = 0;
+                                if (in_valid) {
+                                    in_d = dwen ? inpt2[in_c+cc] : inpt2[in_c];
+                                    acc[cc] += fil_d * (in_d + in_offs);
+                                }
+                                //if(n_stage==1 && out_y==0 && out_x==0 && out_c<=4)
+                                //    printf("%d %d %d %d %02x %02x %d\n", cc,fil_y,fil_x,in_c,(uint8_t)fil_d, (uint8_t)in_d, acc[cc]);
+                            }
+                            if(n_stage==1 && out_y==0 && out_x==0)
+                                printf("%d %d %d %d\n", out_c, fil_y, fil_x, in_c);
+                            filpdatapt += 4;
+                        }
+                    }
+                }
+                ncc = ch1C*depthmul - out_c;
+                ncc = ncc >= 4 ? 4 : ncc;
+                for(int cc = 0; cc < ncc; cc++){
+                    if (bias_data) {
+                        acc[cc] += bias_data[out_c+cc];
+                    }
+                    //int dbg = _Offset(output_shape, 0, out_y, out_x, out_c) == 0xd3;
+                    acc[cc] = limit_i8(_MultiplyByQuantizedMultiplier(acc[cc], output_multiplier[out_c+cc]) + out_offs);
+                    outpt[out_c+cc] = static_cast<int8>(acc[cc]);
+                }
+                //output_data[_Offset(output_shape, batch, out_y, out_x, out_c)] = static_cast<uint8>(acc);
+            }
+            outpt += ch1C*depthmul;
+        }
+    }
+    //if(ncc < 4) fprintf(stderr," %d(%d)", ncc, ch1C*depthmul);
 
+    free(filpdata);
+
+#else
     /*    fprintf(stderr,"%2d in:%p,%d fil:%p bias:%p out:%p,%d %x\n", n_stage, input_data, in_cma((void*)input_data), filter_data, bias_data, output_data,
  in_cma(output_data), (uint32_t)cma_get_phy_addr(output_data));
      */
@@ -365,6 +436,7 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
                                 in_d = inpt2[in_c];
                                 acc += fil_d * (in_d + in_offs);
                             }
+                            //if(n_stage==0 && out_y==0 && out_x==0)printf("%d %d %d %d %d %d %d\n", out_c,fil_y,fil_x,in_c,fil_d, in_d, acc);
                         }
                     }
                 }
@@ -372,14 +444,16 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
                     acc += bias_data[out_c];
                 }
                 //int dbg = _Offset(output_shape, 0, out_y, out_x, out_c) == 0xd3;
-                acc = _MultiplyByQuantizedMultiplier(acc, output_multiplier[out_c]) + out_offs;
-                acc = std::max(acc, -128);
-                acc = std::min(acc, 127);
+                acc = limit_i8(_MultiplyByQuantizedMultiplier(acc, output_multiplier[out_c]) + out_offs);
+                //acc = std::max(acc, -128);
+                //acc = std::min(acc, 127);
                 //output_data[_Offset(output_shape, batch, out_y, out_x, out_c)] = static_cast<uint8>(acc);
                 *outpt++ = static_cast<int8>(acc);
             }
         }
     }
+
+#endif
 
     if(dfp1){
         fwrite(output_data, 1, output->bytes, dfp1);

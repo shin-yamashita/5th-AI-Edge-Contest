@@ -1,7 +1,8 @@
 //
 // input_cache.sv
 // 
-//
+// 2022/09/10 ch_para
+
 `timescale 1ns/1ns
 `include "logic_types.svh"
 
@@ -12,9 +13,10 @@ module input_cache (
   input  logic        civ,	// cache invalidate
 
 // fpmac
+  input  logic        dwen, // depthwise enable  // ch_para
   input  logic        re,	// input data read enable
   input  logic [23:0] adr,	//   address (byte, 0 offset)
-  output logic [7:0]  dr,	// input data (uint8)
+  output logic [31:0] dr,	// input data (uint8 x 4) // ch_para
   output logic        rdy,	//   1:ready
 //  input  logic        rdyin,
 
@@ -104,6 +106,13 @@ module input_cache (
       endcase
   endfunction
 
+  function u32_t in_data(logic dwen, logic [1:0] adr, u32_t data); // ch_para
+    u8_t bdat = byte_sel(adr, data);
+    if(dwen) return data;     // Fix Me!!  
+    else     return {bdat, bdat, bdat, bdat};
+  endfunction
+
+
   assign rpt = adr;
 // hit
   for(genvar i = 0; i < Nbk; i++) begin
@@ -116,8 +125,8 @@ module input_cache (
   assign addra = {wbk,wpt[Nb-1:3]};
 
 //  assign dr = re1 ? byte_sel(adr1,doutb) : 8'h00;
-  assign dr = byte_sel(adr1,doutb);
-
+//  assign dr = byte_sel(adr1,doutb); // ch_para
+  assign dr = in_data(dwen, adr1, doutb); // ch_para
   logic rdyi;
   assign rdyi = !re || ((hit != 'd0) && wpt>rpt[Nb-1:0]);
 

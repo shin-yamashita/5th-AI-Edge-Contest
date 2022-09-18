@@ -6,6 +6,8 @@
 //
 // quantized op version
 //
+// 2022/09/10 ch_para
+
 `include "logic_types.svh"
 
 module u8adrgen #(parameter Np = 1)
@@ -31,6 +33,7 @@ module u8adrgen #(parameter Np = 1)
   output u24_t fil_adr,	// filter addr (byte)
   input  logic fil_rdy,
   output u24_t out_adr[Np],// output addr (byte)
+  output u3_t  out_res, // ch_para
   input  logic out_rdy,
   output u18_t bias_adr,	// bias addr (byte)
   input  logic bias_rdy,
@@ -46,6 +49,7 @@ module u8adrgen #(parameter Np = 1)
   output logic aen,	// acc en
   output logic acl,	// acc clear
   input  logic acvalid,	// acc data valid
+  output logic dwen,  // depthwise enable  // ch_para
 
 // quantize parameters
   output s9_t  in_offs , // quantize params
@@ -100,8 +104,10 @@ module u8adrgen #(parameter Np = 1)
  assign ch1C = depthmul ? inC : outC;
  assign ch2C = depthmul ? 'd1 : inC;
  assign ch3C = depthmul ? outC : inC;
- assign finc = depthmul ? filC: 'd1;
- 
+ //assign finc = depthmul ? filC: 'd1;
+ assign finc = 'd4; // ch_para
+ assign dwen = depthmul;  // ch_para
+
 /*----- param read disable ----
  // parameter register read
  always@(posedge clk) begin
@@ -169,11 +175,13 @@ module u8adrgen #(parameter Np = 1)
  u11_t  out_x[Np], out_y[Np];
  u11_t  out_xh[Np], out_yh[Np];
  u11_t out_c, in_c;
+ u3_t  res_c;
  u3_t  fil_x,  fil_y;
  s28_t in_a[Np];
  u20_t out_a;
 
  assign dw_c = depthmul ? out_c : in_c;
+// assign out_res = res_c;
 
  always@(posedge aclk) begin
    for(int i = 0; i < Np; i++) begin
@@ -258,17 +266,18 @@ module u8adrgen #(parameter Np = 1)
     end
   end else begin
     if(kick_as) begin
-        for(int i = 0; i < Np; i++) begin
-            out_y[i] <= out_yh[i];
-            out_x[i] <= out_xh[i];
-        end
+      for(int i = 0; i < Np; i++) begin
+          out_y[i] <= out_yh[i];
+          out_x[i] <= out_xh[i];
+      end
+      out_res <= 3;
      end
   end
 
   if(ncalc > 0 && rdy) begin // Prepare filter address
-    if(depthmul) fil_adr_i <= out_c;
-    else         fil_adr_i <= dim123 * out_c;
-
+    //if(depthmul) fil_adr_i <= out_c;
+    //else         fil_adr_i <= dim123 * out_c;
+    fil_adr_i <= dim123 * out_c;  // ch_para  dim123 = (dwen ? 1 : filC) * filH*filW;
     inCW <= ch3C * inW;
   end
 
@@ -291,6 +300,7 @@ module u8adrgen #(parameter Np = 1)
     aen_i    <= 1'b0;
     acl    <= 1'b0;
     outtc  <= 0;
+    res_c  <= 3;
     ncalc  <= 'd0;
     in_adr_i  <= '{Np{'d0}};
     fil_adr_i <= 'd0;
@@ -333,8 +343,9 @@ module u8adrgen #(parameter Np = 1)
             fil_y <= 0;
             state <= AccFlush;
             calc <= 1'b1;
-            if(out_c < ch1C-1) begin
-              out_c <= out_c + 1;
+            if(out_c < ch1C-4) begin  // ch_para
+              out_c <= out_c + 4; // ch_para
+              //out_c <= out_c + 1;
             end else begin
               out_c <= 0;
               if(out_a < pH-1) begin
@@ -343,7 +354,6 @@ module u8adrgen #(parameter Np = 1)
                 out_a <= 0;
                 state <= AccTerm;
               end
-
             end // out_c
           end // fil_y
         end // fil_x
@@ -357,7 +367,7 @@ module u8adrgen #(parameter Np = 1)
         in_adr_i[i]  <= in_a[i] + signed'((inCW * fil_y) + (ch3C * fil_x) + dw_c);
 
         if(outtc) begin
-          out_adr[i] <= out_adr[i] + oen[i];
+          out_adr[i] <= out_adr[i] + (oen[i]?out_res+1 : 0);
           oen[i]     <= out_y[i] < outH;
         end
         valid_i[i]   <= ((in_x[i] >= 0) && (in_x[i] < inW) && (in_y[i] >= 0) && (in_y[i] < inH));
@@ -373,6 +383,8 @@ module u8adrgen #(parameter Np = 1)
     if(acvalid && out_rdy) begin // output write
       acl <= 1'b1;
       state <= Acc;
+      res_c <= ch1C - out_c > 3 ? 3 : ch1C - out_c - 1; 
+      out_res <= res_c;
       outtc <= 1'b1;
     end
   end else if(state == AccTerm) begin
@@ -382,8 +394,9 @@ module u8adrgen #(parameter Np = 1)
   	end
     if(acvalid && out_rdy) begin // output write last 1 data
       acl <= 1'b1;
-
       run_s <= 1'b0;
+      out_res <= res_c;
+      outtc <= 1'b1;  // ch_para
       state <= Idle;
     end
   end

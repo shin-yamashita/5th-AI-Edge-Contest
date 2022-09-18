@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "dpi.h"
 
@@ -28,7 +29,8 @@
 int Np = 32;
 int stage = 0;
 
-uint8_t *input = NULL, *filter = NULL, *output = NULL, *refout = NULL;
+uint8_t *input = NULL, *filter = NULL;
+uint8_t *output = NULL, *refout = NULL;
 int32_t *bias = NULL, *quant = NULL, *cpubuff = NULL;
 int32_t tfaccparam[30];
 size_t input_size, filter_size, bias_size, output_size;
@@ -150,6 +152,53 @@ int _nop(){
     return nop();
 }
 
+int outH, outW, outC, filH, filW, filC, inH, inW, inC;
+
+void reorder_filter(int filH, int filW, int filC, int inC, int outC, int dwen)
+{
+//-- channel parallel test
+    int depthmul = 1;
+    int ch1C = dwen ? inC : outC;
+    int ch2C = dwen ? 1 : inC;
+    int finc = dwen ? filC : 1;
+    int fil_size = filH * filW * filC;
+    int filp_inc = filH * filW * ch2C;
+    int Noutc = ch1C*depthmul;
+    if(Noutc % 4) {
+        fprintf(stderr, "Noutc (%d) is not a multiple of 4\n", Noutc);
+        Noutc = (Noutc + 3) & ~3;
+    }
+    int filter_ttl = filp_inc * Noutc;
+    uint32_t* filpdata = (uint32_t*)malloc(filter_ttl);
+    int8_t*  filpdatapt = (int8_t*)filpdata;
+    // re-order filter access sequence
+//    fprintf(stderr, "filp_inc:%d filter_ttl:%d (+%d) ch1C*depthmul:%d Noutc:%d\n", filp_inc, filter_ttl, filter_ttl-filter->bytes, ch1C*depthmul, Noutc);
+    for (int out_c = 0; out_c < ch1C*depthmul; out_c++) {
+    //for (int out_c = 0; out_c < Noutc; out_c++) {  
+        int ch = out_c & 0x3;
+        const int ch1 = out_c / depthmul;
+        const int8_t* filpt = dwen ? &filter[out_c] : &filter[fil_size * ch1];
+        for (int ix = 0; ix < filH*filW*ch2C; ++ix) {
+            int8_t fil_d = *filpt;
+            filpt += finc;
+            filpdatapt[ix * 4 + ch] = fil_d;
+        }
+        if(ch == 3)
+            filpdatapt += filp_inc * 4;
+    }
+
+    if(0){
+        printf("o: %3d %3d %3d f: %3d %3d %3d (%4x) i: %3d %3d %3d\n",
+            outH,outW,outC, filH,filW,filC, fil_size, inH,inW,inC);
+        for(int i = 0; i < 64; i++) printf(" %02x", filter[i]);
+        printf("\n");
+        for(int i = 0; i < 64; i+=4) printf("%d %08x\n", i, filpdata[i/4]);
+    }
+    filter = (uint8_t*)realloc(filter, filter_ttl);
+    memcpy(filter, filpdata, filter_ttl);
+    filter_size = filter_ttl;
+}
+
 int run_conv(int st)
 {
   int i, rd, n, pdat, dwen;
@@ -200,6 +249,7 @@ int run_conv(int st)
     fread(bias, 1, bias_size, dfp);
     fread(quant, 1, bias_size, dfp);
     fread(refout, 1, output_size, dfp);
+
     fclose(dfp);
   }else{
     perror("");
@@ -212,12 +262,17 @@ int run_conv(int st)
     nop();
   }
 
-  int filH = tfaccparam[3];
-  int filW = tfaccparam[4];
-  int filC = tfaccparam[5];
-  int outH = tfaccparam[6];
-  int outW = tfaccparam[7];
+  inH  = tfaccparam[0];
+  inW  = tfaccparam[1];
+  inC  = tfaccparam[2];
+  filH = tfaccparam[3];
+  filW = tfaccparam[4];
+  filC = tfaccparam[5];
+  outH = tfaccparam[6];
+  outW = tfaccparam[7];
+  outC = tfaccparam[8];
   int outWH = outH * outW;
+  int fil_size = filH * filW * filC;
   int pH = (outWH + (Np-1)) / Np;	//tfaccparam[9];
   tfaccparam[9] = pH;
 
@@ -228,7 +283,7 @@ int run_conv(int st)
   }
 
   _reg_wr(TFACCPARAM + 20*4, outWH);	// outHW
-  _reg_wr(TFACCPARAM + 21*4, filH * filW * filC);	// dim123
+  _reg_wr(TFACCPARAM + 21*4, (dwen ? 1 : filC) * filH * filW);	// dim123
   _reg_wr(TFACCPARAM + 22*4, (outWH+pH-1)/pH);	// N chen
 
 // out_x, out_y initial value set
@@ -244,6 +299,14 @@ int run_conv(int st)
   _reg_wr(BASEADR_FILT, FILTER);
   _reg_wr(BASEADR_BIAS, BIAS);
   _reg_wr(BASEADR_QUANT, QUANT);
+
+  const int depthmul = 1;
+  int ch1C = dwen ? inC : outC;
+  int ch2C = dwen ? 1 : inC;
+  int finc = dwen ? filC : 1;
+
+  reorder_filter(filH, filW, filC, inC, outC, dwen);
+
 
   nop();
   nop();
@@ -296,7 +359,7 @@ int c_main(int stage_begin, int stage_end)
       cpubuff = (uint32_t*)realloc(cpubuff, 0x1000000);
       printf("cpubuf;%p\n", cpubuff);
 
-	if(stage_begin < 1 || stage_begin > 71){
+	if(stage_begin < 0 || stage_begin > 71){
 	    return 0;
 	}
 /*

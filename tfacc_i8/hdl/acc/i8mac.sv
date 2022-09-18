@@ -18,8 +18,8 @@ module i8mac (
   input  s32_t bias    , // s32 bias
   input  s9_t  in_offs , // quantize params
   input  s9_t  out_offs,
-  input  s18_t out_mult,
-  input  u8_t  out_shift,
+  input  u32_t quant,   // output quantize param  // ch_para
+
   output s8_t  accd    , // s8 out
   output logic acvalid   // accd data valid
 );
@@ -34,6 +34,11 @@ module i8mac (
   logic cl, en, ben, en1;
   s8_t  in_d1, fil_d1;
   s18_t accn;
+
+  s18_t out_mult;
+  u8_t  out_shift;
+  assign out_mult = quant[31:15]; // ch_para
+  assign out_shift = quant[7:0];
 
   assign cl = rdy && acl;
   assign en = rdy && aen && ivalid;

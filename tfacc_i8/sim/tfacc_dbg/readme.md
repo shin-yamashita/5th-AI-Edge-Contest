@@ -67,4 +67,10 @@ include/tfacc.h:#define RUN_REG         ((volatile u32 *)0x00000084)
 
 
 
+## 6th-ai-reference  追試  
+
+8/31 ~ 9/1  train 13.5H で完了、結果は正しそう  
+
+
+
 

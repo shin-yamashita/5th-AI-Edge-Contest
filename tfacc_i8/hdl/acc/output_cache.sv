@@ -16,7 +16,9 @@ module output_cache
 // u8mac
     input  u32_t adr,	// output addr (byte, 0 offset)
     input  logic we,	//
-    input  u8_t  dw,	// uint8 output data
+    input  u3_t  out_res, // ch_para
+    //input  u8_t  dw,	// uint8 output data
+    input  u32_t  dw, // ch_para
     output logic rdy,	//
     output logic cmpl,	//
 
@@ -36,7 +38,11 @@ module output_cache
   logic [8:0] addrb;
 
   logic [31:0] wpt, rpt;	// buffer RAM write pointer, read pointer (byte addr)
-  
+  logic wen;
+  //u32_t dinb;
+  u8_t db;
+  u2_t oc;
+
   function u4_t we_sel(logic [1:0] adr, logic wen);
       u4_t web;
       if(wen)
@@ -65,7 +71,8 @@ module output_cache
     endcase
     return stb;
   endfunction
-  
+
+  assign db = dw[oc*8+7 -:8];
   rdbuf2k u_rdbuf (
           .clka(clk),   // input wire clka      AXI side
           .wea(8'b0),   // input wire [7 : 0] wea
@@ -75,17 +82,54 @@ module output_cache
           .clkb(clk),   // input wire clkb
           .web(web),    // input wire [3 : 0] web
           .addrb(addrb),// input wire [8 : 0] addrb
-          .dinb({dw,dw,dw,dw}),    // input wire [31 : 0] dinb
+          .dinb({db,db,db,db}),    // input wire [31 : 0] dinb
+          //.dinb(dw),  // ch_para
           .doutb()      // output wire [31 : 0] doutb
       );
 
-  logic wen;
+  enum {Wait, Write} wst;
+
+  // out_data write sequencer
+  always@(posedge clk) begin
+    if(!xrst) begin
+      wst <= Wait;
+      oc <= '0;
+      wen <= 1'b0;
+      wpt <= adr[31:0];
+    end else begin
+      case (wst)
+      Wait: begin
+      //  wpt <= adr[31:0] + out_res;
+      //  wpt <= adr[31:0];
+        oc <= '0;
+        if(we) begin
+          wpt <= adr[31:0];
+          wst <= Write;
+          wen <= 1'b1;
+        end else begin
+          wpt <= adr[31:0] + out_res;
+        end
+      end
+      Write: begin
+        oc <= oc + 1;
+        wpt <= wpt + 1;
+        if(oc == out_res) begin
+          wst <= Wait;
+          wen <= 1'b0;
+        end else begin
+          wen <= 1'b1;
+        end 
+      end
+      endcase
+    end
+  end
 
 // assign wen    = cv && we;	//
-  assign wen    = we; //
-  assign web    = we_sel(adr[1:0], wen);
+//  assign wen    = we; //
+  assign web    = we_sel(wpt[1:0], wen);
+//  assign web    = {wen, wen, wen, wen}; // ch_para
 
-  assign wpt    = adr[31:0];
+//  assign wpt    = adr[31:0] + out_res;  // ch_para
   assign addra  = wack ? rpt[10:3] + 1 : rpt[10:3];	// 64bit @ memory
   assign addrb  = wpt[10:2];	// 32bit @ memory
 
@@ -139,7 +183,7 @@ module output_cache
             flbsy <= 'b1;
           end else begin
           //  if(wen && (wpt > (rpt + 256))) begin
-            if(cv && (wpt > (rpt + 256))) begin
+            if(cv && (wpt > (rpt + 256+4))) begin
               wadr <= {rpt[31:8],8'd0};
           //    wadr <= rpt;
               wreq <= 'b1;

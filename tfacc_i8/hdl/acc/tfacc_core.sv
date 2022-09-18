@@ -45,7 +45,8 @@ module tfacc_core
     output u32_t c_adr,   
     output logic c_re,     
     input  logic c_rdy,    
-    input  u8_t  c_dr,
+    //input  u8_t  c_dr,
+    input  u32_t c_dr,
 
     // read cache bus d bias int32
     output u32_t d_base,
@@ -83,16 +84,19 @@ u32_t pdata, prdata;
 u24_t in_adr[Np], out_adr[Np];
 u24_t fil_adr;
 u12_t bias_adr, quant_adr;
+u2_t  chofs;
 logic fil_rdy, out_rdy, bias_rdy, quant_rdy, run, run_s, aen, acl, acvalid, mac_rdy, out_cmpl;
 logic aen_1d, acl_1d;
-logic valid[Np], ivalid[Np], acv[Np];
-s8_t  accd[Np];
-s8_t  fil_d;
-s32_t bias;
-u32_t quant;
+logic valid[Np], ivalid[Np], acv[Np][4];
+//s8_t  accd[Np];
+u32_t accd[Np]; // ch_para
+//s8_t  fil_d;
+u32_t fil_d;  // ch_para
+s32_t bias[4];  // ch_para
+u32_t quant[4]; // ch_para
 s9_t  in_offs , out_offs;// quantize params
-s18_t out_mult;
-u8_t  out_shift;
+//s18_t out_mult; // ch_para
+//u8_t  out_shift;
 
 logic [4:0]  fpr;
 
@@ -101,16 +105,19 @@ u32_t baseadr[5];    // output, input, filer, bias, quant
 
 logic i_re[Np];     //
 logic i_rdy[Np];    //
-s8_t  in_d[Np];
+//s8_t  in_d[Np];
+u32_t in_d[Np]; // ch_para
 u32_t i_adr[Np];    // input addr (byte)
 logic civ;          // input cache invalidate
 logic civ_as;
 
 logic o_rdy[Np], o_cmpl[Np];	//
 u32_t o_adr[Np];    // output addr (byte)
-u8_t  o_dw[Np];     // uint8
+//u8_t  o_dw[Np];     // uint8
+u32_t o_dw[Np];   // ch_para
 logic oen[Np];      // output enable
 logic chen[Np];     // para channel enable
+u3_t  out_res;
 
 u4_t flreq;
 u4_t flreq_as;
@@ -126,31 +133,63 @@ assign fil_rdy = c_rdy;
 assign fil_d = c_dr;    // u8
 
 assign d_base = baseadr[3];
-assign d_adr = {bias_adr,2'b00};
+assign d_adr = {bias_adr+chofs,2'b00};
 assign d_re  = run_s;
 assign bias_rdy = d_rdy;
 //assign bias  = d_dr; // s32
 
 assign quant_adr = bias_adr;
 assign e_base = baseadr[4];
-assign e_adr = {quant_adr,2'b00};
+assign e_adr = {quant_adr+chofs,2'b00};
 assign e_re  = run_s;
 assign quant_rdy = e_rdy;
 //assign quant  = e_dr; // u32
-assign out_mult = quant[31:15];
-assign out_shift = quant[7:0];
+// assign out_mult = quant[31:15];  // ch_para
+// assign out_shift = quant[7:0];
 logic fb_rdy;
+logic dwen;   // ch_para
 
 assign mac_rdy = in_rdy & fb_rdy;
 
-assign acvalid  = acv[0];
+assign acvalid  = acv[0][0];
 assign out_rdy  = and_unpack(o_rdy);
 assign out_cmpl = and_unpack(o_cmpl);
 assign in_rdy   = and_unpack(i_rdy);
 
+enum {Idle, Bfetch, Bterm, Bwait} state;
+u2_t chofs1;
+
 always_ff@(posedge aclk) begin
-  bias  <= d_dr; // s32
-  quant <= e_dr; // u32
+  if(!aen_1d) begin // ch_para  bias/quant 4 word read sequencer
+    state <= Idle;
+    chofs <= '0;
+    chofs1 <= '0;
+  end else if(bias_rdy && quant_rdy) begin
+    case(state)
+    Idle: begin
+      chofs <= '0;
+      chofs1 <= '0;
+      state <= Bfetch;
+    end
+    Bfetch: begin
+      chofs <= chofs + 1;
+      chofs1 <= chofs;
+      bias[chofs1] <= d_dr;
+      quant[chofs1] <= e_dr;
+      if(chofs > 2) begin
+        state <= Bterm;
+      end
+    end
+    Bterm: begin
+      bias[chofs1] <= d_dr;
+      quant[chofs1] <= e_dr;
+      state <= Bwait;
+    end
+    Bwait:  ;
+    endcase
+  end
+//  bias  <= d_dr; // s32
+//  quant <= e_dr; // u32
 
   for(int i = 0; i < Np; i++) begin
     ivalid[i] <= valid[i];
@@ -161,6 +200,15 @@ always_ff@(posedge aclk) begin
 //  mac_rdy <= in_rdy & fil_rdy & bias_rdy;
   fb_rdy <= fil_rdy & bias_rdy & quant_rdy;
 end
+
+function u8_t byte_sel(logic [1:0] cc, u32_t data);
+  case(cc)
+  2'd3: return data[31:24];
+  2'd2: return data[23:16];
+  2'd1: return data[15:8];
+  default: return data[7:0];
+  endcase
+endfunction
 
 generate
   for(genvar i = 0; i < Np; i++) begin
@@ -177,9 +225,10 @@ generate
       .civ  (civ_as),        //  input  logic  cache invalidate
 
     // i8mac
+      .dwen (dwen),       // ch_para
       .re   (i_re[i]),    //  input  logic  input data read enable
       .adr  (i_adr[i]),   //  input  u32_t  address (byte, 0 offset)
-      .dr   (in_d[i]),    //  output s8_t   input data (int8)
+      .dr   (in_d[i]),    //  output s32_t   input data (int8 x 4)  // ch_para
       .rdy  (i_rdy[i]),   //  output logic  1:ready
     //  .rdyin(fil_rdy & bias_rdy),
 
@@ -201,7 +250,8 @@ generate
     // i8mac
       .adr  (o_adr[i]),     // in  u32_t output addr (byte, 0 offset)
       .we   (acvalid & oen[i]),// in  logic write enable
-      .dw   (o_dw[i]),      // in  s8_t  int8 output data
+      .out_res(out_res),  // ch_para
+      .dw   (o_dw[i]),      // in  u32_t  int8 x 4 output data
       .rdy  (o_rdy[i]),     // out logic ready
       .cmpl (o_cmpl[i]),    // out logic complete
 
@@ -214,29 +264,30 @@ generate
       .wlen (wlen[i])       // out u8_t   write burst length - 1
     );
 
-    i8mac u_i8mac (
-     .clk       (aclk),             //in                clk     , //
-     .xreset    (arst_n),            //in                xreset  , //
-     .aen       (aen_1d),          //in                aen     , // acc enable
-     .acl       (acl_1d),          //in                acl     , // acc clear
-     .rdy       (mac_rdy),         //in                rdy     , // memory read data ready
-     .ivalid    (ivalid[i]),       //in                ivalid  , // input data valid
-     .in_d      (in_d[i]),         //in  signed [7:0]  in_d    , // s8 input
-     .fil_d     (fil_d),           //in  signed [7:0]  fil_d   , // s8 filter
-     .bias      (bias),            //in  signed [31:0] bias    , // s32 bias
-     .in_offs   (in_offs),         //in  signed [8:0]  in_offs , // quantize params
-     .out_offs  (out_offs),        //in  signed [8:0]  out_offs,
-     .out_mult  (out_mult),        //in  signed [17:0] out_mult,
-     .out_shift (out_shift),       //in  unsigned [7:0]  out_shift,
-     .accd      (accd[i]),         //out signed [7:0]  accd    , // s8 out
-     .acvalid   (acv[i])           //out               acvalid   // accd data valid
-    );
+    for(genvar cc = 0; cc < 4; cc++) begin  // ch_para
+      i8mac u_i8mac (
+      .clk       (aclk),                //in                clk     , //
+      .xreset    (arst_n),              //in                xreset  , //
+      .aen       (aen_1d),              //in                aen     , // acc enable
+      .acl       (acl_1d),              //in                acl     , // acc clear
+      .rdy       (mac_rdy),             //in                rdy     , // memory read data ready
+      .ivalid    (ivalid[i]),           //in                ivalid  , // input data valid
+      .in_d      (in_d[i][cc*8+7 -:8]), //in  signed [7:0]  in_d    , // s8 input
+      .fil_d     (fil_d[cc*8+7 -:8]),   //in  signed [7:0]  fil_d   , // s8 filter
+      .bias      (bias[cc]),            //in  signed [31:0] bias    , // s32 bias
+      .in_offs   (in_offs),             //in  signed [8:0]  in_offs , // quantize params
+      .out_offs  (out_offs),            //in  signed [8:0]  out_offs,
+      .quant     (quant[cc]),           //in  unsigned [31:0] quant,  // ch quant param {out_mult[31:15],,out_shift[7:0]},
+      .accd      (accd[i][cc*8+7 -:8]), //out signed [7:0]  accd    , // s8 out
+      .acvalid   (acv[i][cc])           //out               acvalid   // accd data valid
+      );
+    end
   end
 
 endgenerate
 
 
-// sr_cpu interface  
+// rv32_core interface  
 // adrgen parameter regs
 //  ffff0300   kick, runflag
 //  ffff0304 - ffff0310  baseadr[4]
@@ -406,6 +457,7 @@ u8adrgen #(.Np(Np)) u_u8adrgen
   .fil_adr  (fil_adr),      //  output u24_t fil_adr,  // filter addr (byte)
   .fil_rdy  (fb_rdy),	//fil_rdy),      //  input  logic fil_rdy,
   .out_adr  (out_adr),      //  output u24_t out_adr[Np],// output addr (byte)
+  .out_res  (out_res),      // ch_para
   .out_rdy  (out_rdy),      //  input  logic out_rdy,
   .bias_adr (bias_adr),     //  output u12_t bias_adr, // bias addr (byte)
   .bias_rdy (1'b1),	//bias_rdy),     //  input  logic bias_rdy,
@@ -421,6 +473,7 @@ u8adrgen #(.Np(Np)) u_u8adrgen
   .aen      (aen),          //  output logic aen,      // acc en
   .acl      (acl),          //  output logic acl,      // acc clear
   .acvalid  (acvalid),      //  input  logic acvalid,  // acc data valid
+  .dwen     (dwen),   // ch_para
 
 // quantize parameters
   .in_offs  (in_offs),      //  output s9_t  in_offs , // quantize params

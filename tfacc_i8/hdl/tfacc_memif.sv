@@ -62,12 +62,13 @@ module tfacc_memif
 );
 
 //parameter Np = 16;
+parameter Np = 20;
 //parameter Np = 24;
 //parameter Np = 26;
 //parameter Np = 32;
 //parameter Np = 38;
 //parameter Np = 40;    // not routeable
-parameter Np = 42;    // LUT over 4757/4727
+//parameter Np = 42;    // LUT over 4757/4727
 
 parameter debug = 0;
 
@@ -488,7 +489,7 @@ axi_ic u_aci_ic (
 
 // cache bus
 u32_t c_adr, d_adr, e_adr;
-u8_t  c_dr;
+u32_t  c_dr;    // ch_para
 u32_t d_dr, e_dr;
 logic c_re, d_re, e_re;
 //logic in_rdy, c_rdy, d_rdy, rdyin;
@@ -616,8 +617,8 @@ rd_cache_nk  # (.NK(32), .debug(debug) ) u_cache_filt
     .adr        (c_adr),	// in  unsigned(31 downto 0);
     .re         (c_re),		// in  std_logic;
     .rdy        (c_rdy),	// out std_logic;
-    .dr         (),     // out unsigned(31 downto 0);
-    .dru8       (c_dr), // out u8_t
+    .dr         (c_dr),     // out unsigned(31 downto 0);
+    .dru8       (), // out u8_t
 
     .clreq      (clreq[2]),
 
@@ -803,7 +804,7 @@ tfacc_core #(.Np(Np), .debug(debug)) u_tfacc_core (
     .c_adr    (c_adr),   // output  logic [31:0]      c_adr,    
     .c_re     (c_re),    // output  logic             c_re,     
     .c_rdy    (c_rdy),   // input   logic             c_rdy,    
-    .c_dr     (c_dr),    // input   logic [7:0]       c_dr,
+    .c_dr     (c_dr),    // input   logic [31:0]       c_dr,
 
     // cache bus d : bias
     .d_base   (d_base),

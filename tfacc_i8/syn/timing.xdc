@@ -17,8 +17,8 @@ set_multicycle_path 1 -hold -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfac
 #set_multicycle_path 1 -hold -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/u_u8adrgen/fil_offs_reg[*]/C]
 set_multicycle_path 2 -setup -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/u_u8adrgen/out_offs_reg[*]/C]
 set_multicycle_path 1 -hold -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/u_u8adrgen/out_offs_reg[*]/C]
-set_multicycle_path 2 -setup -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/quant_reg[*]/C]
-set_multicycle_path 1 -hold -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/quant_reg[*]/C]
+set_multicycle_path 2 -setup -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/quant_reg[*]*/C]
+set_multicycle_path 1 -hold -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/quant_reg[*]*/C]
 #set_multicycle_path 2 -setup -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/u_u8adrgen/out_shift_reg[*]*/C] 
 #set_multicycle_path 1 -hold -from [get_pins design_1_i/tfacc_memif_0/inst/u_tfacc_core/u_u8adrgen/out_shift_reg[*]*/C]
 
