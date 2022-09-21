@@ -2,6 +2,7 @@
 // rvmon  monitor program
 //
 // 2021/
+// 2022/09/    for 6th AI-edge-contest
 
 #include "stdio.h"
 #include <stdlib.h>
@@ -134,7 +135,7 @@ void memtest (u32 *pt, int len){
     }
 }
 
-static int ncyc = 0;
+static int ncyc = 0, stage = 0;
 static u32 i_elapsed_list[128];
 static int cntrun = 0, cntxrdy = 0;
 
@@ -174,7 +175,7 @@ void set_param_and_kick()
       //TFACCPARAM[i]);
     }
     TFACCPARAM[20] = outWH;
-    TFACCPARAM[21] = filH * filW * filC;    // dim123
+    TFACCPARAM[21] = filH * filW * (dwen ? 1 : filC);    // dim123
     TFACCPARAM[22] = (outWH+pH-1)/pH;   // Nchen
 
     *CACHECTRL = 0x0f;  // read cache invalidate (clean) request
@@ -198,6 +199,9 @@ void terminate_tfacc()
     do{
         flrdy = *CACHECTRL;
     }while(flrdy != 0x40);  // wait out cache all complete
+    if(ncyc == stage){
+        *TFACCFPR = 1;
+    }
     //    printf(" out cache complete and flush request ... :%02x\n", *CACHECTRL);
     *CACHECTRL = 0xf0;      // out cache flush request
     *CACHECTRL = 0x00;
@@ -214,6 +218,7 @@ void terminate_tfacc()
 //        printf(" %d: %d\n", ncyc, i_elapsed_list[ncyc]);
     ncyc = ncyc < 127 ? ncyc + 1 : 127;
 //    set_param(kTfaccNstage, ncyc);
+    *TFACCFPR = 0;
     set_param(kTfaccRun, 0);    // handshake with PS
 }
 
@@ -407,13 +412,18 @@ int main (void)
             printf("filt: %8x\n", *BASEADR_FILT);
             printf("bias: %8x\n", *BASEADR_BIAS);
             printf("quant: %8x\n", *BASEADR_QUANT);
-       }
+        }
         else if (!strcmp ("m", tok)){	// monisel
             tok = strtok (NULL, " \n");
             if(tok) *TFACCMON = str2u32(tok);
             tok = strtok (NULL, " \n");
             if(tok) TFACCMON[1] = str2u32(tok);
             printf("moni : %d\n", *TFACCMON);
+        }
+        else if (!strcmp ("stage", tok)){	// 
+            tok = strtok (NULL, " \n");
+            if(tok) stage = atoi(tok);
+            printf("trig stage : %d\n", stage);
         }
         else if (!strcmp ("p", tok)){
             wpt--;
@@ -458,6 +468,7 @@ int main (void)
                     "    c  cache clean\n"
                     "    e  print elapsed time\n"
                     "    r  reset elapsed\n"
+                    "    stage {n}  trig stage\n"
                 //    "    r  tfacc run\n"
             );
         }

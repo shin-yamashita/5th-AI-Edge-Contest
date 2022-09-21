@@ -91,6 +91,46 @@ inline int _ComputePaddingWithOffset(int stride, int dilation_rate, int in_size,
     return total_padding / 2;
 }
 
+char* reorder_filter(size_t *filter_size, int8_t *filter, int filH, int filW, int filC, int inC, int outC, int dwen)
+{
+//-- channel parallel test
+    int depthmul = 1;
+    int ch1C = dwen ? inC : outC;
+    int ch2C = dwen ? 1 : inC;
+    int finc = dwen ? filC : 1;
+    int fil_size = filH * filW * filC;
+    int filp_inc = filH * filW * ch2C;
+    int Noutc = ch1C*depthmul;
+    if(Noutc % 4) {
+        //fprintf(stderr, "Noutc (%d) is not a multiple of 4\n", Noutc);
+        Noutc = (Noutc + 3) & ~3;
+    }
+    int filter_ttl = filp_inc * Noutc;
+    uint32_t* filpdata = (uint32_t*)cma_malloc(filter_ttl);
+    int8_t*  filpdatapt = (int8_t*)filpdata;
+    // re-order filter access sequence
+//    fprintf(stderr, "filp_inc:%d filter_ttl:%d (+%d) ch1C*depthmul:%d Noutc:%d\n", filp_inc, filter_ttl, filter_ttl-filter->bytes, ch1C*depthmul, Noutc);
+    for (int out_c = 0; out_c < ch1C*depthmul; out_c++) {
+    //for (int out_c = 0; out_c < Noutc; out_c++) {  
+        int ch = out_c & 0x3;
+        const int ch1 = out_c / depthmul;
+        const int8_t* filpt = dwen ? &filter[out_c] : &filter[fil_size * ch1];
+        for (int ix = 0; ix < filH*filW*ch2C; ++ix) {
+            int8_t fil_d = *filpt;
+            filpt += finc;
+            filpdatapt[ix * 4 + ch] = fil_d;
+        }
+        if(ch == 3)
+            filpdatapt += filp_inc * 4;
+    }
+    *filter_size = filter_ttl;
+    return (char*)filpdata;
+//    filter = (uint8_t*)realloc(filter, filter_ttl);
+//    memcpy(filter, filpdata, filter_ttl);
+//    filter_size = filter_ttl;
+}
+
+
 TfLiteStatus OpParamsPrepare(TfLiteContext* context,
         TfLiteTensor* input, TfLiteTensor* filter, TfLiteTensor* bias, TfLiteTensor* output,
         OpParams *opparam, int32_t optype)
@@ -307,6 +347,7 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
 
 #ifdef CH_PARA
 //-- channel parallel test
+#if 0
     int filp_inc = filH * filW * ch2C;
     int Noutc = ch1C*depthmul;
     if(Noutc % 4) {
@@ -337,6 +378,10 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
         printf("\n");
         for(int i = 0; i < 64; i+=4) printf("%d %08x\n", i, filpdata[i/4]);
     }
+#else
+    uint32* filpdata = (uint32*)filter_data; 
+    int8*  filpdatapt = (int8*)filpdata;
+#endif
     int8* outpt = output_data;
     int in_y0 = - padH;
     int ncc;
@@ -372,8 +417,8 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
                                 //if(n_stage==1 && out_y==0 && out_x==0 && out_c<=4)
                                 //    printf("%d %d %d %d %02x %02x %d\n", cc,fil_y,fil_x,in_c,(uint8_t)fil_d, (uint8_t)in_d, acc[cc]);
                             }
-                            if(n_stage==1 && out_y==0 && out_x==0)
-                                printf("%d %d %d %d\n", out_c, fil_y, fil_x, in_c);
+                            //if(n_stage==1 && out_y==0 && out_x==0)
+                            //    printf("%d %d %d %d\n", out_c, fil_y, fil_x, in_c);
                             filpdatapt += 4;
                         }
                     }
@@ -395,7 +440,7 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
     }
     //if(ncc < 4) fprintf(stderr," %d(%d)", ncc, ch1C*depthmul);
 
-    free(filpdata);
+    //free(filpdata);
 
 #else
     /*    fprintf(stderr,"%2d in:%p,%d fil:%p bias:%p out:%p,%d %x\n", n_stage, input_data, in_cma((void*)input_data), filter_data, bias_data, output_data,

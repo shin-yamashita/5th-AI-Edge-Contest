@@ -20,6 +20,7 @@
 
 #define TFACC_NP        ((volatile u32 *)0xffff031c)
 #define TFACCMON        ((volatile u32 *)0xffff0320)    // monisel
+#define TFACCFPR        ((volatile u32 *)0xffff0324)    // fpr 
 
 #define TFACCPARAM      ((volatile u32 *)0xffff0400)    // accparams[64]
 

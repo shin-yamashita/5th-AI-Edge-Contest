@@ -509,6 +509,7 @@ ila_0 u_ila (
 --*/
 u16_t probe0;
 assign probe0 = {
+  fpr[1:0],
   run,
   cs_cache,
   cs_flg,

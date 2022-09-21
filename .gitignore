@@ -44,3 +44,7 @@ tfacc_i8/syn/rev_125_125/
 tfacc_i8/syn/rev_125_150/
 
 tfacc_i8/syn/rev_125_187/
+
+tensorflow_src/tflite_delegate/.vscode/
+
+data

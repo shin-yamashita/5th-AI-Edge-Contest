@@ -52,34 +52,50 @@ public:
             //printf("Init(%d:%d) i:%d,%d,%d o:%d k:%d\n", i, node_index, inputs_[i][0], inputs_[i][1], inputs_[i][2],
             //				outputs_[i][0], builtin_code_[i]);
         }
-        //printf("params->nodes_to_replace->size : %d\n", params->nodes_to_replace->size);
+        init_ = 0;
+        //printf("Init : params->nodes_to_replace->size : %d\n", params->nodes_to_replace->size);
 
         return kTfLiteOk;
     }
 
     TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) override {
-       register_input_node(inputs_[0][0]);
-       for (int i = 0; i < inputs_.size(); ++i) {
-           TfLiteTensor *input  = &context->tensors[inputs_[i][0]];
-           TfLiteTensor *filter = &context->tensors[inputs_[i][1]];
-           TfLiteTensor *bias   = &context->tensors[inputs_[i][2]];
-           TfLiteTensor *output = &context->tensors[outputs_[i][0]];
-           prepare_buffer_size(kTfaccOutput, output->bytes);
-           prepare_buffer_size(kTfaccInput, input->bytes);
-           prepare_buffer_size(kTfaccFilter, filter->bytes);
-           prepare_buffer_size(kTfaccBias, bias->bytes);
-           prepare_buffer_size(kTfaccQuant, bias->bytes);
-//           printf(" f %p %d b %p %d\n",
-//                   GetTensorData<int8>(filter),filter->bytes, GetTensorData<int32>(bias), bias->bytes);
-// alloc and copy filter/bias
-           char* pt = (char*)cma_malloc(filter->bytes);
-           memcpy(pt, GetTensorData<int8>(filter), filter->bytes);
-           filter->data.raw = pt;
-           pt = (char*)cma_malloc(bias->bytes);
-           memcpy(pt, GetTensorData<int8>(bias), bias->bytes);
-           bias->data.raw = pt;
-       }
+        if(init_) return kTfLiteOk;
 
+        register_input_node(inputs_[0][0]);
+        for (int i = 0; i < inputs_.size(); ++i) {
+            TfLiteTensor *input  = &context->tensors[inputs_[i][0]];
+            TfLiteTensor *filter = &context->tensors[inputs_[i][1]];
+            TfLiteTensor *bias   = &context->tensors[inputs_[i][2]];
+            TfLiteTensor *output = &context->tensors[outputs_[i][0]];
+            const RuntimeShape& input_shape = GetTensorShape(input);
+            const RuntimeShape& filter_shape = GetTensorShape(filter);
+            const RuntimeShape& output_shape = GetTensorShape(output);
+            const int inC   = input_shape.Dims(3);
+            const int filH  = filter_shape.Dims(1);
+            const int filW  = filter_shape.Dims(2);
+            const int filC  = filter_shape.Dims(3);
+            const int outC  = output_shape.Dims(3);
+            int dwen = builtin_code_[i] == kTfLiteBuiltinDepthwiseConv2d;
+            size_t filter_size;
+            // alloc and reorder/copy filter
+                //char* pt = (char*)cma_malloc(filter->bytes);
+                //memcpy(pt, GetTensorData<int8>(filter), filter->bytes);
+            char* pt =  reorder_filter(&filter_size, GetTensorData<int8>(filter), filH, filW, filC, inC, outC, dwen);
+            filter->data.raw = pt;
+
+            prepare_buffer_size(kTfaccOutput, output->bytes);
+            prepare_buffer_size(kTfaccInput, input->bytes);
+            prepare_buffer_size(kTfaccFilter, filter_size);
+            prepare_buffer_size(kTfaccBias, bias->bytes);
+            prepare_buffer_size(kTfaccQuant, bias->bytes);
+
+            // alloc and copy bias
+            pt = (char*)cma_malloc(bias->bytes);
+            memcpy(pt, GetTensorData<int8>(bias), bias->bytes);
+            bias->data.raw = pt;
+            //if(i == 0) printf("Prepare %d: i:%p ft:%p o:%p fp:%p bp:%p\n", init_, input, filter, output, filter->data.raw, bias->data.raw);
+        }
+        init_++;
         return kTfLiteOk;
     }
 
@@ -105,7 +121,7 @@ public:
                     Conv2DquantPerChannel(inputs_[i][0], dwen, &opparams_[i], input, filter, bias, output)
                     ,kTfLiteOk);
         }
-//        printf("cma alloced: %d %x\n", get_cma_malloc_size(), get_cma_malloc_size());
+        //printf("Eval : cma alloced: %d %x\n", get_cma_malloc_size(), get_cma_malloc_size());
         return kTfLiteOk;
     }
 
@@ -119,7 +135,7 @@ private:
     std::vector<int> builtin_code_;
     // Holds Convparams
     std::vector<OpParams> opparams_;
-
+    int init_;
 };
 //-----
 

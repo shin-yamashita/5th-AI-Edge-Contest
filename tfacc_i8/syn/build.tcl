@@ -71,7 +71,7 @@ phys_opt_design
 #
 route_design
 
-runPPO 2 1 ; # run 2 post-route iterations and enable phys_opt_design
+runPPO 4 1 ; # run 4 post-route iterations and enable phys_opt_design
 
 #place_design -post_place_opt
 #phys_opt_design

@@ -16,7 +16,7 @@ CFLAGS	= -g -Wall $(MFLAG) -nostartfiles -O2 -I../include -DTXIRQ
 LDFLAGS = -g -Wall $(MFLAG) -nostdlib
 ARFLAGS	= crs
 
-SRCS1    = ulib.c uartdrv.c fprint.c strtok.c strlen.c memset.c memclr.c readline.c
+SRCS1    = ulib.c uartdrv.c fprint.c strtok.c strlen.c memclr.c readline.c
 OBJS1    = $(SRCS1:.c=.o)
 DEPS    = $(SRCS1:.c=.dep)
 

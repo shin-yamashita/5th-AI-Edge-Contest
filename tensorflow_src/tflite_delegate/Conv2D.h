@@ -44,6 +44,8 @@ TfLiteStatus OpParamsPrepare(TfLiteContext* context,
         TfLiteTensor* input, TfLiteTensor* filter, TfLiteTensor* bias, TfLiteTensor* output,
         OpParams *opparam, int32_t optype);
 
+char* reorder_filter(size_t *filter_size, int8_t *filter, int filH, int filW, int filC, int inC, int outC, int dwen);
+
 TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
         int n_stage,
         int dwen,

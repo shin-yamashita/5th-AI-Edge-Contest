@@ -124,11 +124,11 @@ static int getline(char *str, int nmax)
             c = getchar_nbk();
             if ((c == 'O') || (c == '[')) {
                 switch (c = getchar_nbk()) {
-                case 'A':   // up prev hist]
+                case 'A':   // up [prev hist]
                     home();
                     return -1;
                     break;
-                case 'B':   // down nect hist
+                case 'B':   // down [next hist]
                     home();
                     return 1;
                     break;

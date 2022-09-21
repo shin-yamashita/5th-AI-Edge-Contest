@@ -300,10 +300,10 @@ int run_conv(int st)
   _reg_wr(BASEADR_BIAS, BIAS);
   _reg_wr(BASEADR_QUANT, QUANT);
 
-  const int depthmul = 1;
-  int ch1C = dwen ? inC : outC;
-  int ch2C = dwen ? 1 : inC;
-  int finc = dwen ? filC : 1;
+//  const int depthmul = 1;
+//  int ch1C = dwen ? inC : outC;
+//  int ch2C = dwen ? 1 : inC;
+//  int finc = dwen ? filC : 1;
 
   reorder_filter(filH, filW, filC, inC, outC, dwen);
 
