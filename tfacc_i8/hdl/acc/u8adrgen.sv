@@ -7,6 +7,7 @@
 // quantized op version
 //
 // 2022/09/10 ch_para
+// 2022/10/30 Fixed malfunction under condition (outC < 4)
 
 `include "logic_types.svh"
 
@@ -270,8 +271,9 @@ module u8adrgen #(parameter Np = 1)
           out_y[i] <= out_yh[i];
           out_x[i] <= out_xh[i];
       end
-      out_res <= 3;
-     end
+//1030      out_res <= 3;
+      out_res <= ch1C >= 4 ? 3 : ch1C - 1;	// 1030
+    end
   end
 
   if(ncalc > 0 && rdy) begin // Prepare filter address
@@ -300,7 +302,8 @@ module u8adrgen #(parameter Np = 1)
     aen_i    <= 1'b0;
     acl    <= 1'b0;
     outtc  <= 0;
-    res_c  <= 3;
+//1030    res_c  <= 3;
+    res_c <= ch1C >= 4 ? 3 : ch1C - 1;	// 1030  
     ncalc  <= 'd0;
     in_adr_i  <= '{Np{'d0}};
     fil_adr_i <= 'd0;
@@ -343,7 +346,8 @@ module u8adrgen #(parameter Np = 1)
             fil_y <= 0;
             state <= AccFlush;
             calc <= 1'b1;
-            if(out_c < ch1C-4) begin  // ch_para
+            //if(out_c < ch1C-4) begin  // ch_para
+            if(out_c + 4 < ch1C) begin  // 1030
               out_c <= out_c + 4; // ch_para
               //out_c <= out_c + 1;
             end else begin
