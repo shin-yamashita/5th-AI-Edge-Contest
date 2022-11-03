@@ -16,10 +16,10 @@ module rv_muldiv (
   input  alu_t alu,
   input  u32_t rrd1,
   input  u32_t rrd2,
-  output u32_t rwdat,
-  output u32_t rwdatx,
+  output u32_t rwdat,   // div/mod 17 cycle
+  output u32_t rwdatx,  // mul 2 cycle
   output logic cmpl,
-  output logic mulop
+  output logic mulop  // 2 cycle op
   );
 
   typedef struct {
@@ -32,25 +32,24 @@ module rv_muldiv (
 
   alu_t alu1;
   u64_t umul;
-  s64_t smul, sumul;
+  s32_t smul, sumul;
+  //s32_t sdiv, srem;
 
+  /*
   s17_t al, ah, bl, bh;	// rrd1:a rrd2:b
   s16_t sah, sbh;
-
   assign al = {1'b0,rrd1[15:0]};
   assign ah = {1'b0,rrd1[31:16]};
   assign bl = {1'b0,rrd2[15:0]};
   assign bh = {1'b0,rrd2[31:16]};
   assign sah = rrd1[31:16];
   assign sbh = rrd2[31:16];
-
   s33_t xl, xm, sxm, xh, sxh, suxh;
   s34_t suxm;
-
-//  s64_t rsmul, rsumul;
-
+  */
   always_ff@(posedge clk) begin
     alu1 <= alu;
+    /*
     xl   <= al * bl;
     xm   <= bh * al + ah * bl;
     sxm  <= sbh * al + sah * bl;
@@ -58,15 +57,16 @@ module rv_muldiv (
     xh   <= ah * bh;
     sxh  <= sah * sbh;
     suxh <= sah * bh;
-//    rsmul  <= 64'(signed'(rrd1) * signed'(rrd2));        // s32*s32-> s64
-//    rsumul <= 64'(signed'(rrd1) * signed'({1'b0,rrd2})); // s32*u32-> s64
-//    if(smul != rsmul) $display("s  ref: %d dut: %d", rsmul, smul);
-//    if(sumul != rsumul) $display("su ref: %d dut: %d", rsumul, sumul);
+    */
+    umul[31:0]  <= 32'(rrd1 * rrd2);
+    umul[63:32] <= 64'(rrd1 * rrd2) >>> 32;
+    smul        <= 64'(signed'(rrd1) * signed'(rrd2)) >>> 32;        // s32*s32-> s64 >> 32
+    sumul       <= 64'(signed'(rrd1) * signed'({1'b0,rrd2})) >>> 32; // s32*u32-> s64 >> 32
   end
 
-  assign umul  = u64_t'(xl) + (xm << 16) + (xh << 32);
-  assign smul  = xl + (sxm <<< 16)  + (sxh <<< 32);
-  assign sumul = xl + (suxm <<< 16) + (suxh <<< 32);
+//  assign umul  = u64_t'(xl) + (xm << 16) + (xh << 32);
+//  assign smul  = xl + (sxm <<< 16)  + (sxh <<< 32);
+//  assign sumul = xl + (suxm <<< 16) + (suxh <<< 32);
 
   always_comb begin
     case(alu)	// rrd1 op rrd2
@@ -74,26 +74,31 @@ module rv_muldiv (
     default: mulop = 1'b0;
     endcase
     case(alu1)	// pipe'd mulop out
-    MUL:    rwdatx = umul[31:0];	// u32*u32 & 0xffffffff
-    MULH:   rwdatx = smul[63:32];	// s32*s32 >> 32
-    MULHSU: rwdatx = sumul[63:32];	// s32*u32 >> 32
-    MULHU:  rwdatx = umul[63:32];	// u32*u32 >> 32
+    MUL:    rwdatx = umul[31:0];  // u32*u32 & 0xffffffff
+    MULH:   rwdatx = smul;        // s32*s32 >> 32
+    MULHSU: rwdatx = sumul;       // s32*u32 >> 32
+    MULHU:  rwdatx = umul[63:32]; // u32*u32 >> 32
     default: rwdatx = 'd0;
     endcase
-
+  /*
     case(alu)	// rrd1 op rrd2
-    DIV:    rwdat = sgn ? 32'd0 - Q.A : Q.A;	// rrd1 / rrd2
+//    DIV:    rwdat = sgn ? 32'd0 - Q.A : Q.A;	// rrd1 / rrd2
+    DIV:    rwdat = sdiv;
     DIVU:   rwdat = Q.A;
-    REM:    rwdat = msgn ? 2'd0 - Q.B : Q.B;	// rrd1 % rrd2
+//    REM:    rwdat = msgn ? 2'd0 - Q.B : Q.B;	// rrd1 % rrd2
+    REM:    rwdat = srem;
     REMU:   rwdat = Q.B;
     default: rwdat = 'd0;
     //    printf("ill ALU operation %d.\n", alu);	
     endcase
+    */
   end
 
 
   // 2bit divide
-  function div_t div_sub(div_t q);
+  function div_t div_sub(div_t Q);
+    div_t q;
+    q = Q;
     for(int i = 0; i < 2; i++) begin
       q.R = {1'b0, q.R[63:1]};
       if((q.R[63:32] == 'd0) && (q.B >= q.R[31:0])) begin
@@ -109,6 +114,8 @@ module rv_muldiv (
   typedef enum logic {Idle, Calc} state_t;
   state_t st;
   u5_t exc;
+  div_t vQ;
+  assign vQ = div_sub(Q);
 
   always_ff@(posedge clk) begin
     if(!xreset) begin
@@ -141,7 +148,19 @@ module rv_muldiv (
           end
         endcase
       end else if(st == Calc) begin
-        Q <= div_sub(Q);
+        Q <= vQ;
+
+        case(alu)	// rrd1 op rrd2
+        DIV:    rwdat <= sgn ? 32'd0 - vQ.A : vQ.A;	// rrd1 / rrd2
+        DIVU:   rwdat <= vQ.A;
+        REM:    rwdat <= msgn ? 2'd0 - vQ.B : vQ.B;	// rrd1 % rrd2
+        REMU:   rwdat <= vQ.B;
+        default: rwdat <= 'd0;
+        endcase
+
+        //sdiv <= sgn ? 32'd0 - vQ.A : vQ.A;	// rrd1 / rrd2
+        //srem <= msgn ? 2'd0 - vQ.B : vQ.B;	// rrd1 % rrd2
+
         exc <= exc - 'd1;
         if(exc == 0) begin
           st <= Idle;

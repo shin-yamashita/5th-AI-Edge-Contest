@@ -20,12 +20,12 @@ typedef enum u3_t {
 
 typedef enum u6_t {
   A_NA, S2, ADD, SLT,  SLTU, XOR, OR, AND,  SLL, SRL, SRA, SUB,
-  MUL, MULH, MULHSU, MULHU,  DIV, DIVU, REM, REMU,
-  CSR, FLD, FST, FMADD,  FMSUB, FADD, FSUB, FMUL,  FDIV, FSQRT, FSGN, FMIN,  FMAX, FCVT
+  MUL, MULH, MULHSU, MULHU,  DIV, DIVU, REM, REMU, CSR,
+  FADD, FSUB, FMUL, FDIV, FLOAT, FEQ, FLT, FLE, FIX, FSGNJ, FSGNJN, FSGNJX, FMIN, FMAX
 } alu_t;
 
 typedef enum u4_t {
-  R_NA, X0, RS1, RS2, RD, IMM, PC, RM, WE, RE, MDR, ALU, INC, JMP, BRA, SHAMT
+  R_NA, X0, RS1, RS2, RD, IMM, PC, WE, RE, MDR, ALU, INC, JMP, BRA, SHAMT
 } regs_t;
 
 typedef struct {
@@ -46,7 +46,7 @@ typedef struct {
 
 function f_insn_t dec_insn(input u32_t ir);
   f_insn_t f_dec;
-
+     //  func7     Rs2[2:0]  func3     opc
   case ({ir[31:25],ir[22:20],ir[14:12],ir[6:0]}) inside
                         // : f_dec = '{   type,     ex,    alu,   mode,    mar,    ofs,    mwe,   rrd1,   rrd2,    rwa,    rwd,     pc,  excyc }; // mnemonic
   20'b??????????0000000011 : f_dec = '{ type_I,   ex_I,   A_NA,    SQI,    RS1,    IMM,     RE,    RS1,   R_NA,     RD,    MDR,   R_NA,   5'd0 }; // "lb"
@@ -88,6 +88,20 @@ function f_insn_t dec_insn(input u32_t ir);
   20'b0000001???1100110011 : f_dec = '{ type_R,   ex_M,    REM,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,  5'd16 }; // "rem"
   20'b0000001???1110110011 : f_dec = '{ type_R,   ex_M,   REMU,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,  5'd16 }; // "remu"
   20'b?????????????0110111 : f_dec = '{ type_U,   ex_I,    ADD,     SI,   R_NA,    IMM,   R_NA,     X0,    IMM,     RD,    ALU,   R_NA,   5'd0 }; // "lui"
+  20'b0000000??????1010011 : f_dec = '{ type_R,   ex_M,   FADD,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd1 }; // "fadd"
+  20'b0000100??????1010011 : f_dec = '{ type_R,   ex_M,   FSUB,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd1 }; // "fsub"
+  20'b0001000??????1010011 : f_dec = '{ type_R,   ex_M,   FMUL,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "fmul"
+  20'b0001100??????1010011 : f_dec = '{ type_R,   ex_M,   FDIV,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,  5'd16 }; // "fdiv"
+  20'b1100000??????1010011 : f_dec = '{ type_R,   ex_M,    FIX,     SI,   R_NA,   R_NA,   R_NA,    RS1,  SHAMT,     RD,    ALU,   R_NA,   5'd0 }; // "fix"
+  20'b1010000???0101010011 : f_dec = '{ type_R,   ex_M,    FEQ,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "feq"
+  20'b1010000???0011010011 : f_dec = '{ type_R,   ex_M,    FLT,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "flt"
+  20'b1010000???0001010011 : f_dec = '{ type_R,   ex_M,    FLE,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "fle"
+  20'b1101000??????1010011 : f_dec = '{ type_R,   ex_M,  FLOAT,     SI,   R_NA,   R_NA,   R_NA,    RS1,  SHAMT,     RD,    ALU,   R_NA,   5'd0 }; // "float"
+  20'b0010000???0001010011 : f_dec = '{ type_R,   ex_M,  FSGNJ,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "fsgnj"
+  20'b0010000???0011010011 : f_dec = '{ type_R,   ex_M, FSGNJN,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "fsgnjn"
+  20'b0010000???0101010011 : f_dec = '{ type_R,   ex_M, FSGNJX,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "fsgnjx"
+  20'b0010100???0001010011 : f_dec = '{ type_R,   ex_M,   FMIN,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "fmin"
+  20'b0010100???0011010011 : f_dec = '{ type_R,   ex_M,   FMAX,     SI,   R_NA,   R_NA,   R_NA,    RS1,    RS2,     RD,    ALU,   R_NA,   5'd0 }; // "fmax"
   20'b??????????0001100011 : f_dec = '{type_SB,   ex_I,   A_NA,     SI,   R_NA,    IMM,   R_NA,    RS1,    RS2,   R_NA,   R_NA,    BRA,   5'd0 }; // "beq"
   20'b??????????0011100011 : f_dec = '{type_SB,   ex_I,   A_NA,     SI,   R_NA,    IMM,   R_NA,    RS1,    RS2,   R_NA,   R_NA,    BRA,   5'd0 }; // "bne"
   20'b??????????1001100011 : f_dec = '{type_SB,   ex_I,   A_NA,     SI,   R_NA,    IMM,   R_NA,    RS1,    RS2,   R_NA,   R_NA,    BRA,   5'd0 }; // "blt"

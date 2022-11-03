@@ -9,7 +9,8 @@
 import  pkg_rv_decode::*;
 
 module rv_core #(parameter Nregs = 16,
-                 parameter debug = 0  ) (
+                 parameter debug = 0,
+                 parameter fpuen = 1 ) (
   input  logic clk,
   input  logic xreset,
 
@@ -73,20 +74,37 @@ endfunction
 
 function logic [32:0] Reg_fwd(u5_t ix, u32_t rd, u32_t mdr, u5_t rwa[3], regs_t rwd[3], logic rwdx[3], u32_t rwdat[3]); // Register read with fowarding
   logic d_stall;
+  u32_t rdi;
+  rdi = rd;
   d_stall = 1'b0;
   if(ix == 5'd0) return 'd0;
   if(rwa[0] == ix) begin
     if(rwd[0] == ALU && rwdx[0]) d_stall = 1'b1;
-    else if(rwd[0] == ALU) rd = rwdat[0];
+    else if(rwd[0] == ALU) rdi = rwdat[0];
     else if(rwd[0] == MDR) d_stall = 1'b1;
   end else if(rwa[1] == ix) begin
-    if(rwd[1] == ALU) rd = rwdat[1];
+    if(rwd[1] == ALU) rdi = rwdat[1];
     else if(rwd[1] == MDR) d_stall = 1'b1;
   end else if(rwa[2] == ix) begin
-    if(rwd[2] == ALU) rd = rwdat[2];
-    else if(rwd[2] == MDR) rd = mdr;
+    if(rwd[2] == ALU) rdi = rwdat[2];
+    else if(rwd[2] == MDR) rdi = mdr;
   end
-  return {d_stall,rd};
+  return {d_stall,rdi};
+endfunction
+
+function u32_t dec_imm(f_insn_t f_dec, u32_t insn);
+  u32_t f_imm;
+  case (f_dec.itype)
+  type_I  : f_imm = u32_t'(signed'(insn[31:20]));
+  type_S  : f_imm = u32_t'(signed'({insn[31:25],insn[11:7]}));
+  type_SB : f_imm = u32_t'(signed'({insn[31],insn[7],insn[30:25],insn[11:8],1'b0}));
+  type_U  : f_imm = {insn[31:12],12'h0};
+  type_UJ : f_imm = u32_t'(signed'({insn[31],insn[19:12],insn[20],insn[30:21],1'b0}));
+  type_R  : f_imm = 'h00000000;
+  type_RF : f_imm = 'h00000000;
+  default : f_imm = 'h00000000;
+  endcase
+  return f_imm;
 endfunction
 
 logic   rdy, cmpl, mulop;
@@ -135,55 +153,52 @@ assign i_re = 1'b1;
   assign stall = bra_stall | d_stall | ex_stall;
 
 //---- fetch ----
+  logic   rdy1;
   u4_t    pcinc, pcinca;
-  u32_t   ira;
-  u16_t   i_dr1;
-  assign  ira = i_dr;
-  assign  i_adr = rdy ? pca : pc;
+  u32_t   ira, irah;
+//  u16_t   i_dr1;
+  assign  ira = rdy1 ? i_dr : irah;
+//  assign  i_adr = rdy ? pca : pc;
+  assign  i_adr = pca;
 
   always_ff @ (posedge clk) begin
     if(!xreset) begin
       ir <= 'd0;
       irh <= 'd0;
-      i_dr1 <= 'd0;
     end else if(rdy) begin
       ir <= ira;
-      i_dr1 <= i_dr[31:16];
       if(!(ex_stall || d_stall))
         irh <= ir;
+    end
+    rdy1 <= rdy;
+    if(rdy1) begin
+      irah <= ira;
+
     end
   end
   assign IR = (ex_stall || d_stall) ? irh : ir;
 
 //---- decode ----
-  logic c_insn;
+  logic c_insn, c_insna;
   f_insn_t f_dec;
   u32_t c_imm, f_imm, imm;
   u32_t exir, eir;
   u3_t func3;
-  
+//  logic ins_ecall;
+
   parameter ECALL = 32'h00000073;
 
   assign c_insn = IR[1:0] != 2'b11;
+  assign c_insna = ira[1:0] != 2'b11;
   assign pcinc = c_insn ? 'd2 : 'd4;
-  assign pcinca = ira[1:0] != 2'b11 ? 'd2 : 'd4;
+  assign pcinca = c_insna ? 'd2 : 'd4;
   assign {eir, c_imm} = exp_cinsn(IR[15:0]);
+  assign f_imm = dec_imm(f_dec, IR);
   assign imm  = c_insn ? c_imm : f_imm;
-  assign exir = issue_int ? ECALL : (c_insn ? eir : IR);
+  assign exir = issue_int ? ECALL : (c_insn ? eir : IR);  // 
   assign f_dec = dec_insn(exir);
   assign func3 = exir[14:12];
 // : f_dec = '{   type,     ex,    alu,   mode,    mar,    ofs,    mwe,   rrd1,   rrd2,    rwa,    rwd,     pc,  excyc }; // mnemonic
-  always_comb
-    case (f_dec.itype)
-    type_I  : f_imm = u32_t'(signed'(IR[31:20]));
-    type_S  : f_imm = u32_t'(signed'({IR[31:25],IR[11:7]}));
-    type_SB : f_imm = u32_t'(signed'({IR[31],IR[7],IR[30:25],IR[11:8],1'b0}));
-    type_U  : f_imm = {IR[31:12],12'h0};
-    type_UJ : f_imm = u32_t'(signed'({IR[31],IR[19:12],IR[20],IR[30:21],1'b0}));
-    type_R  : f_imm = 'h00000000;
-    type_RF : f_imm = 'h00000000;
-    default : f_imm = 'h00000000;
-    endcase
 
   assign ars1 = f_dec.rrd1 == RS1 ? exir[19:15] : 'd0;
   assign ars2 = f_dec.rrd2 == RS2 ? exir[24:20] : 'd0;
@@ -194,15 +209,19 @@ assign i_re = 1'b1;
   u32_t rrd1a, rrd2a, bdsta;
   u32_t rs1f, rs2f;
 
-  assign {ds1,rs1f} = bra_stall ? 'd0 : Reg_fwd(ars1, rs1, mdr, rwa, rwd, rwdx, rwdat);
-  assign {ds2,rs2f} = bra_stall ? 'd0 : Reg_fwd(ars2, rs2, mdr, rwa, rwd, rwdx, rwdat);
+//  assign {ds1,rs1f} = bra_stall ? 'd0 : Reg_fwd(ars1, rs1, mdr, rwa, rwd, rwdx, rwdat);
+//  assign {ds2,rs2f} = bra_stall ? 'd0 : Reg_fwd(ars2, rs2, mdr, rwa, rwd, rwdx, rwdat);
+
+  assign {ds1,rs1f} = Reg_fwd(ars1, rs1, mdr, rwa, rwd, rwdx, rwdat) & ~{bra_stall, 32'd0};
+  assign {ds2,rs2f} = Reg_fwd(ars2, rs2, mdr, rwa, rwd, rwdx, rwdat) & ~{bra_stall, 32'd0};
 
   assign rrd1a = f_dec.rrd1 == PC ? pc1 :
                 (f_dec.rrd1 == X0 ? 'd0 :
                 (f_dec.rrd1 == SHAMT ? exir[19:15] : rs1f));
 
   assign rrd2a = f_dec.rrd2 == IMM ? imm :
-                (f_dec.rrd2 == INC ? pc1 + pcinc :
+            //  (f_dec.rrd2 == INC ? pc1 + pcinc : 
+                (f_dec.rrd2 == INC ? pc1 + (d_stall ? 'd0 : pcinc) :  // 220509 jalr-bug
                 (f_dec.rrd2 == SHAMT ? exir[24:20] : rs2f));
 
   assign bdsta = d_stall ? bdst : pc1 + imm;
@@ -210,13 +229,12 @@ assign i_re = 1'b1;
   assign {bstall,pca} = xreset ? 
           (ds1|ds2|(ex_stall&!cmpl) ? {1'b0,pc} : 
                   bra_dest(bra_stall, f_dec, func3, rs1f, rs2f, imm, bdsta, pc, pcinca, mtvec, mepc)) : 'd0;
-            //      bra_dest(bra_stall, f_dec, func3, rrd1a, rrd2a, imm, bdsta, pc, pcinca, mtvec, mepc)) : 'd0;
 
 //---- exec ----
 
   u32_t csr_rd;
 
-  rv_alu u_rv_alu (
+  rv_alu #(.fpuen(fpuen)) u_rv_alu (
     .clk    (clk),
     .xreset (xreset),
     .rdy    (rdy),
@@ -244,6 +262,7 @@ parameter MTIMECMP = 32'hffff8008;
   u12_t   csr_adr;
   csrmd_t csrmd;
   logic   mret;
+  logic   zmip;
 
   function csrmd_t csr_mode(logic csren, u3_t func3);
     if(csren)
@@ -268,25 +287,39 @@ parameter MTIMECMP = 32'hffff8008;
     endcase
   endfunction
 
+  function u32_t csr_rd_sel(csrmd_t md, u12_t adr);
+    u32_t csr_rd;
+    if(md != NOP)
+      case(adr)
+      12'h305: csr_rd = mtvec;
+      12'h304: csr_rd = mie;
+      12'h344: csr_rd = mip;
+      12'h341: csr_rd = mepc;
+      12'h342: csr_rd = mcause;
+      12'hc01: csr_rd = mtime[31:0];  // time
+      12'hc81: csr_rd = mtime[63:32]; // timeh
+      default: csr_rd = 'd0;
+      endcase
+    else
+      csr_rd = 'd0;
+    return csr_rd;
+  endfunction
+
   assign csren = f_dec.ex == ex_C;
-//  assign mret  = f_dec.ex == ex_R;
 
   always_ff @ (posedge clk) begin
-/*    csrmd <= csr_mode(csren, func3);
-    csr_adr <= IR[31:20];
-    mtirq <= s32_t'(mtimecmp - mtime) < 0;  // timer expire interrupt request
-    irq_s <= {irq_s[0], irq};
-    mret  <= f_dec.ex == ex_R;
-*/
     if(!xreset) begin
       mtvec <= 'd0;
       mepc  <= 'd0;
       mie   <= 'd0;
       mip   <= 'd0;
+      zmip  <= 1'b1;
       mcause<= 'd0;
     end else if(rdy) begin
-      csrmd <= csr_mode(csren, func3);
+      csrmd   <= csr_mode(csren, func3);
       csr_adr <= IR[31:20];
+      csr_rd  <= csr_rd_sel(csr_mode(csren, func3), IR[31:20]);
+
       mtirq <= s32_t'(mtimecmp - mtime) < 0;  // timer expire interrupt request
       irq_s <= {irq_s[0], irq};
       mret  <= f_dec.ex == ex_R;
@@ -297,11 +330,13 @@ parameter MTIMECMP = 32'hffff8008;
         mie[7] <= mie[7] & ~issue_int[1];
         mie[11] <= mie[11] & ~issue_int[2];
       end
-      if(csr_adr == 12'h344 && csrmd != NOP)  // mip
+      if(csr_adr == 12'h344 && csrmd != NOP) begin // mip
         mip <= csr_wsc(csrmd, mip, rrd1) & 32'b100010001000;
-      else begin
+        zmip <= (csr_wsc(csrmd, mip, rrd1) & 32'b100010001000) == 'd0;
+      end else begin
         mip[7] <= (mip[7] | issue_int[1]) & ~mret; 
         mip[11] <= (mip[11] | issue_int[2]) & ~mret; 
+        zmip <= ~((mip[7] | issue_int[1]) & ~mret || (mip[11] | issue_int[2]) & ~mret);
       end
       if(csrmd != NOP) begin
         case(csr_adr)
@@ -312,26 +347,11 @@ parameter MTIMECMP = 32'hffff8008;
       end
       if(issue_int) mepc <= pc1;
     end
+  //  ins_ecall <= issue_int != 'd0;
   end
   assign issue_int[0] = 1'b0;
   assign issue_int[1] = !mip && (mie[7]  && mtirq) && !stall;
   assign issue_int[2] = !mip && (mie[11] && irq_s[1]) && !stall;
-
-
-  always_comb begin
-    if(csrmd != NOP)
-      case(csr_adr)
-      12'h305: csr_rd = mtvec;
-      12'h304: csr_rd = mie;
-      12'h344: csr_rd = mip;
-      12'h341: csr_rd = mepc;
-      12'h342: csr_rd = mcause;
-      12'hc01: csr_rd = mtime[31:0];  // time
-      12'hc81: csr_rd = mtime[63:32]; // timeh
-      default: csr_rd = 'd0;
-      endcase
-    //else csr_rd = 'd0;
-  end
 
 //---- mtime register ----
   u32_t d_dr1;
@@ -457,58 +477,76 @@ parameter MTIMECMP = 32'hffff8008;
   assign rwdat[1] = rwdx[1] ? rwdatx : rwdat1;
   assign rwdx[0] = mulop;
 
+//  logic maren, mdwen;
+  u32_t marp, mdwp, immp;
+
   always_ff @ (posedge clk) begin
-    if(rdy) begin
-        bra_stall <= bra_stall ? 1'b0 : bstall;
-        if(!xreset)
+    if(rdy1) begin
+      mdr1 <= d_dr | d_dr1;
+    end
+    if(rdy || !xreset) begin
+      bra_stall <= bra_stall ? 1'b0 : bstall;
+      if(!xreset)
         ex_stall <= 1'b0;     
-        else if(cmpl)
+      else if(cmpl)
         ex_stall <= 1'b0;
-        else if(!bra_stall && f_dec.excyc > 0)
+      else if(!bra_stall && f_dec.excyc > 0)
         ex_stall <= 1'b1;
-    
-        d_stall <= (ds1 | ds2);
-        if(f_dec.excyc == 0 || cmpl || bra_stall)
-                pc  <= pca;
+  
+      d_stall <= (ds1 | ds2);
+      if(f_dec.excyc == 0 || cmpl || bra_stall)
+              pc  <= pca;
 
-        pc1 <= pc;
-        rwdat1   <= rwdat[0];
-        rwdat[2] <= rwdat[1];
-        rwd[1]   <= rwd[0];
-        rwd[2]   <= rwd[1];
-        rwdx[1]  <= rwdx[0];
-        rwdx[2]  <= rwdx[1];
-        rwa[1]   <= rwa[0];
-        rwa[2]   <= rwa[1];
-        mmd1[0] <= mmd;
-        mmd1[1] <= mmd1[0];
-        mwe1[0] <= mwe;
-        mwe1[1] <= mwe1[0];
-        mar1[0] <= mar[1:0];
-        mar1[1] <= mar1[0];
-        d_be1[0] <= d_be;
-        d_be1[1] <= d_be1[0];
-        mdr1 <= d_dr | d_dr1;
+      pc1 <= pc;
+      rwdat1   <= rwdat[0];
+      rwdat[2] <= rwdat[1];
+      rwd[1]   <= rwd[0];
+      rwd[2]   <= rwd[1];
+      rwdx[1]  <= rwdx[0];
+      rwdx[2]  <= rwdx[1];
+      rwa[1]   <= rwa[0];
+      rwa[2]   <= rwa[1];
+      mmd1[0] <= mmd;
+      mmd1[1] <= mmd1[0];
+      mwe1[0] <= mwe;
+      mwe1[1] <= mwe1[0];
+      mar1[0] <= mar[1:0];
+      mar1[1] <= mar1[0];
+      d_be1[0] <= d_be;
+      d_be1[1] <= d_be1[0];
+    //  mdr1 <= d_dr | d_dr1;
 
-        if(!(bra_stall)) begin
-            if(!ex_stall) begin
-                rrd1 <= rrd1a;
-                rrd2 <= rrd2a;
-            end
-            bdst <= bdsta;
-            
-            mar    <= ds1 | ds2 ? -2   : (f_dec.mar == RS1 ? rrd1a + imm : 'd0);
-            mdw    <= ds1 | ds2 ? -1   : (f_dec.mwe == WE ? rrd2a : 'd0);
-            rwa[0] <= ds1 | ds2 ? R_NA : (f_dec.rwa == RD ? awd : 'd0);
-            mmd    <= ds1 | ds2 ? SI   : f_dec.mode;
-            mwe    <= ds1 | ds2 ? R_NA : f_dec.mwe;
-            rwd[0] <= ds1 | ds2 ? R_NA : f_dec.rwd;
-            alu    <= ds1 | ds2 ? A_NA : f_dec.alu;
-    //  end else begin
-    //    alu    <= ds1 | ds2 ? A_NA : f_dec.alu; //
+      if(!(bra_stall)) begin
+        if(!(ex_stall && !d_stall)) begin
+            rrd1 <= rrd1a;
+            rrd2 <= rrd2a;
         end
+        bdst <= bdsta;
+        
+        ////mar    <= ds1 | ds2 ? -2   : (f_dec.mar == RS1 ? rrd1a + imm : 'd0);
+        ////mdw    <= ds1 | ds2 ? -1   : (f_dec.mwe == WE ? rrd2a : 'd0);
+        mdw    <= (f_dec.mwe == WE ? rs2f : 'd0);
+        marp   <= rs1f;
+        immp   <= imm;
+      //  mdwp   <= rs2f;
+      //  maren  <= f_dec.mar == RS1;
+      //  mdwen  <= f_dec.mwe == WE;
+
+        rwa[0] <= ds1 | ds2 ? R_NA : (f_dec.rwa == RD ? awd : 'd0);
+        mmd    <= ds1 | ds2 ? SI   : f_dec.mode;
+        mwe    <= ds1 | ds2 ? R_NA : f_dec.mwe;
+
+        rwd[0] <= ds1 | ds2 ? R_NA : f_dec.rwd;
+        alu    <= ds1 | ds2 ? A_NA : f_dec.alu;
+  //  end else begin
+  //    alu    <= ds1 | ds2 ? A_NA : f_dec.alu; //
+      end
+
     end
   end
+
+  assign mar = marp + immp;
+//  assign mdw = mdwen ? mdwp : 'd0;
 
 // synthesis translate_off
   function void debug_print(u32_t pc, u32_t ir, u32_t mar, u32_t mdr, u32_t rrd1, u32_t rrd2, u32_t rwdat);
