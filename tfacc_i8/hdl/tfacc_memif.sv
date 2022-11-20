@@ -431,7 +431,7 @@ axi_ic u_aci_ic (
   .S05_AXI_ARID     (S05_AXI_ARID),                  // input wire [0 : 0] S05_AXI_ARID
   .S05_AXI_ARADDR   (S05_AXI_ARADDR),              // input wire [39 : 0] S05_AXI_ARADDR
   .S05_AXI_ARLEN    (S05_AXI_ARLEN),                // input wire [7 : 0] S05_AXI_ARLEN
-  .S05_AXI_ARSIZE   (S_AXI_ARSIZE),              // input wire [2 : 0] S05_AXI_ARSIZE
+  .S05_AXI_ARSIZE   (3'd2),              // input wire [2 : 0] S05_AXI_ARSIZE
   .S05_AXI_ARBURST  (S_AXI_ARBURST),            // input wire [1 : 0] S05_AXI_ARBURST
   .S05_AXI_ARLOCK   (S_AXI_ARLOCK),              // input wire S05_AXI_ARLOCK
   .S05_AXI_ARCACHE  (S_AXI_ARCACHE),            // input wire [3 : 0] S05_AXI_ARCACHE

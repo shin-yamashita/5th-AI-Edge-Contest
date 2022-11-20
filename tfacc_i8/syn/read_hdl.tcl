@@ -17,6 +17,9 @@ read_verilog -library xil_defaultlib -sv {
   ../hdl/acc/output_cache.sv
   ../hdl/acc/output_arb.sv
   ../hdl/acc/rv_axi_port.sv
+  ../hdl/acc/rv_cache.sv
+  ../hdl/acc/dpram10m.sv
+  ../hdl/acc/adrtag.sv
   ../hdl/tfacc_memif.sv
 }
 

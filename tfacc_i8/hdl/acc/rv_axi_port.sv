@@ -44,109 +44,75 @@ module rv_axi_port #(parameter BASE = 16'h0010, LAST = 16'h7FFF) ( // 0x0010_000
     output logic        rready          //
     );
 
-    
-typedef enum u3_t {Idle, Ack, WrdyWait, Writecyc, Writecmd, Readcyc, Readcmd, Post} migstate_t;
+u32_t dr_d, dr_f;
+assign dr = dr_d | dr_f;
 
-migstate_t mst;
+logic clreq, clbsy, flreq, flbsy;
+logic cs_cache;
+assign cs_cache = adr == 32'hffff0188 ? 1'b1 : 1'b0; // ffff0188
 
-logic cs_d;    //	: std_logic;
-logic req2, wrq2, ack2, re1; //	: std_logic;
-
-//-- chip select
-// assign cs_d = adr[31:16] >= BASE && adr[31:16] <= LAST;
- assign cs_d = 1'b0;    // disable
- assign req2 = cs_d && (re || (we != '0));
- assign wrq2 = cs_d && (we != '0);
-// rdy <= '0' when cs_d = '1' and hit = '0' and (we /= 0 or re = '1')	else '1';
-
-// assign rdy = !req2 || rvalid || wready || !xrst;
-// assign dr = re1 ? rd_data : '0;
-// assign wr_data = dw;
- assign rdy = 1'b1; //
- assign dr = '0;
- assign wr_data = '0;
-
-//-- axi sequencer
-
-// web <= (ren2e,ren2e,ren2e,ren2e);
- always_ff@(posedge aclk) begin
-    if(!arst_n) begin
-        mst <= Idle;
-        ack2 <= '0;
-        //ren2 <= '0;
-        wvalid <= '0;
-        rready <= '0;
-        re1 <= '0;
+always_ff@(posedge cclk) begin
+    if(!xrst) begin
+        flreq <= '0;
+        clreq <= '0;
     end else begin
-//        re1 <= cs_d & re;
-        case(mst)
-        Idle: begin
-            ack2 <= '0;
-            //ren2 <= '0;
-            wvalid <= '0;
-            awvalid <= '0;
-            arvalid <= '0;
-            rready <= '0;
-            if(req2) begin
-                mst <= Ack;
-           end
+        if(cs_cache && we[3]) begin
+            flreq <= flreq | dw[4];
+            clreq <= clreq | dw[0];
+        end else begin
+            if(clbsy) clreq <= '0;
+            if(flbsy) flreq <= '0;
         end
-        Ack: begin   // =>
-            ack2 <= '1;
-            if(wrq2) begin
-                mst <= Writecmd;
-                awvalid <= '1;
-            end else begin
-                mst <= Readcmd;
-                arvalid <= '1;
-            end
+        if(cs_cache && re) begin
+            dr_f <= {flbsy, 3'b0, clbsy};
+        end else begin
+            dr_f <= '0;
         end
-        Writecmd: begin   // =>
-            if(awready) begin
-                mst <= Writecyc;
-                awvalid <= '0;
-                wvalid <= '1;
-            end else begin
-                awvalid <= '1;
-            end
-        end
-        Writecyc: begin   // =>
-            if(wvalid && wready) begin
-                wvalid <= '0;
-                mst <= Idle;
-            end
-        end
-        Readcmd: begin   // =>
-            if(arready) begin
-                mst <= Readcyc;
-                arvalid <= '0;
-                rready <= '1;
-            end else begin
-                arvalid <= '1;
-            end
-        end
-        Readcyc: begin // =>
-            arvalid <= '0;
-            if(rvalid) begin
-                rready <= '0;
-                mst <= Idle;
-            end
-        end
-        Post: begin // =>
-            wvalid <= '0;
-            mst <= Idle;
-            rready <= '0;
-        end
-        endcase
     end
- end
- 
- assign wlast = 1'b1;
+end
 
- assign  awlen = 8'b00000000; //	-- 16x32=64byte burst
- assign  arlen = 8'b00000000;    //	-- 16x32=64byte burst
- assign  awaddr = adr;
- assign  araddr = adr;
+rv_cache #(.BASE(BASE), .LAST(LAST)) u_rv_cache_d (
+    .xrst    (xrst),
+
+// chahe clear / flush request / busy status
+    .clreq   (clreq),
+    .clbsy   (clbsy),
+    .flreq   (flreq),
+    .flbsy   (flbsy),
+
+// CPU bus
+    .cclk    (cclk),
+    .adr     (adr),
+    .we      (we),
+    .re      (re),
+    .rdyin   (rdyin),
+    .rdy     (rdy),
+    .dw      (dw),
+    .dr      (dr_d),
+
+// memc interface
+    .aclk	    (aclk),
+    .arst_n	    (arst_n),
+    .awaddr	    (awaddr),	//          : out   std_logic_vector(27:0);
+    .awlen 	    (awlen),	//          : out   std_logic_vector(7:0);
+    .awvalid	(awvalid),	//         : out   std_logic;
+    .awready	(awready),	//         : in    std_logic;
+
+    .wr_data	(wr_data),	//         : out   std_logic_vector(31:0);
+    .wvalid 	(wvalid),	//         : out   std_logic;      // wr_en
+    .wlast  	(wlast),	//         : out   std_logic;
+    .wready 	(wready),	//         : in    std_logic;      // wr_full
+
+    .araddr 	(araddr),	//         : out   std_logic_vector(27:0);
+    .arlen  	(arlen),	//         : out   std_logic_vector(7:0);
+    .arvalid	(arvalid),	//         : out   std_logic;
+    .arready	(arready),	//         : in    std_logic;
+
+    .rd_data	(rd_data),	//         : in    std_logic_vector(31:0);
+    .rvalid 	(rvalid),	//         : in    std_logic;      // rd_en
+    .rlast  	(rlast),	//         : in    std_logic;      // rd_en
+    .rready 	(rready)	//         : out   std_logic       //
+    );
 
 endmodule
 
