@@ -28,6 +28,7 @@ cc_library(
         "MyDelegate.cc",
         "Conv2D.cc",
         "tfacc_u8.cc", 
+        "xlnk_wrap.cc",
     ],
     defines = select({
         ":u96_build":  ["ULTRA96"],
@@ -56,7 +57,8 @@ cc_binary(
     linkshared = 1,
     linkstatic = 1,
     linkopts = select({
-        ":u96_build": ["-lcma"],
+#        ":u96_build": ["-lcma"],
+        ":u96_build": ["-lxrt_core"],
         ":x86_build": [""],
         "//conditions:default": [""],
     }),

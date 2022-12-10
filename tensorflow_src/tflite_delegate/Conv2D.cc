@@ -9,7 +9,7 @@ namespace tflite {
 static int accmax = 0;
 static int n_stage = 0;
 static int dumpfrom = 72;    // 72
-static int dumpto = 71;
+static int dumpto = 34;
 static FILE *dfp1 = NULL;
 
 // int32 quantized_multiplier ....  [31:8] multiplier,  [7:0] shift
@@ -225,8 +225,12 @@ TfLiteStatus Conv2DquantPerChannel(// conv / dwconv
     const int strH = params->stride_height;
     const int dilW = params->dilation_width_factor;
     const int dilH = params->dilation_height_factor;
-    const int padW = params->pad_width;
-    const int padH = params->pad_height;
+    int padW = params->pad_width;
+    int padH = params->pad_height;
+
+    // 2022/11/12 pytorch->tflite->delete Pad : padding adjust
+    padW += (strW > 1);
+    padH += (strH > 1); 
 
     const int32 in_offs  = params->input_offset;
     const int32 out_offs = params->output_offset;
