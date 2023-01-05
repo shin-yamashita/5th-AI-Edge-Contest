@@ -5,7 +5,10 @@
 // genarated by ./c-insntab.py c-insn.csv
 //
 
-`include "rv_types.svh"
+`include "logic_types.svh"
+
+`ifndef EXP_CINSN_SVH
+`define EXP_CINSN_SVH
 
 typedef enum u4_t {
   type_CR, type_CI, type_CSS, type_CIW, type_CL, type_CS, type_CB, type_CJ
@@ -122,4 +125,4 @@ function u64_t exp_cinsn (input u16_t ir);
 
 endfunction
 
-
+`endif

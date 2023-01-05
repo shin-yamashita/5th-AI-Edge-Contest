@@ -8,7 +8,7 @@
 // 2022/07/  add rv_fpu
 //
 
-`include "rv_types.svh"
+`include "logic_types.svh"
 import  pkg_rv_decode::*;
 
 module rv_alu #(parameter fpuen = 1) (

@@ -4,7 +4,10 @@
 // insn decode table
 // genarated by ./insntab.py RV-insn.csv
 
-`include "rv_types.svh"
+`include "logic_types.svh"
+
+`ifndef DEC_INSN_SVH
+`define DEC_INSN_SVH
 
 typedef enum u3_t {
   type_U, type_UJ, type_I, type_SB, type_S, type_R, type_RF
@@ -128,3 +131,4 @@ function f_insn_t dec_insn(input u32_t ir);
 
 endfunction
 
+`endif

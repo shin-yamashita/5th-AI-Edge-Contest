@@ -4,9 +4,9 @@
 //
 
 `timescale 1ns/1ns
-`include "rv_types.svh"
+`include "logic_types.svh"
+//import  pkg_rv_decode::*;
 
-import  pkg_rv_decode::*;
 
 module rv_core #(parameter Nregs = 16,
                  parameter debug = 0,
@@ -30,6 +30,7 @@ module rv_core #(parameter Nregs = 16,
   input  logic irq  // interrupt request
   );
 
+import  pkg_rv_decode::*;
 
 //---- branch destination calc ----
 function logic [32:0] bra_dest(logic bra_stall, f_insn_t f_dec, u3_t func3,

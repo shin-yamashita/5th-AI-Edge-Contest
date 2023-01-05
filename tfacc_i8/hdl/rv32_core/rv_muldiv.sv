@@ -6,7 +6,7 @@
 // 2021/4
 //
 
-`include "rv_types.svh"
+`include "logic_types.svh"
 import  pkg_rv_decode::*;
 
 module rv_muldiv (

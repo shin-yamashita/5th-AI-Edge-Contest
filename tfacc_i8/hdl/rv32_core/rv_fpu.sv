@@ -9,7 +9,7 @@
 //  no fma 
 
 `timescale 1ns/1ns
-`include "rv_types.svh"
+`include "logic_types.svh"
 import  pkg_rv_decode::*;
 
 module rv_fpu #(parameter divfen = 1) (
@@ -376,6 +376,7 @@ module rv_fpu #(parameter divfen = 1) (
             FSGNJ:  cc[31] = rrd2[31];
             FSGNJN: cc[31] = ~rrd2[31];
             FSGNJX: cc[31] = rrd1[31] ^ rrd2[31];
+            default: ;
             endcase
             rwdatx <= cc;
         end

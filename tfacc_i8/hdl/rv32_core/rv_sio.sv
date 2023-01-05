@@ -5,7 +5,7 @@
 // 2021/05/15 copy from mm/mm10 vhdl
 
 `timescale 1ns/1ns
-`include "rv_types.svh"
+`include "logic_types.svh"
 
 //import  pkg_rv_decode::*;
 

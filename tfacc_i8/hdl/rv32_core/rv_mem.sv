@@ -4,7 +4,7 @@
 //
 
 `timescale 1ns/1ns
-`include "rv_types.svh"
+`include "logic_types.svh"
 
 module rv_mem #(parameter Nk = 32)(
     input  logic clk,

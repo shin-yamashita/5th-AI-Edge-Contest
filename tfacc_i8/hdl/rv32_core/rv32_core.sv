@@ -1,11 +1,12 @@
 
 //
 // 2021/4
+// 2022/11/23 for kv260
 
 `timescale 1ns/1ns
-`include "rv_types.svh"
+`include "logic_types.svh"
 
-module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
+module rv32_core #( parameter debug = 0, parameter Nk = 64 ) (
     input  logic cclk,    //    : in    std_logic;
     input  logic xreset,  //  : in  std_logic;
     //-- memory access bus
@@ -28,7 +29,7 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
     //-- ext irq input
     input  logic eirq,    //    : in  std_logic;
     //-- para port out
-    output u8_t  pout     //    : out unsigned(7 downto 0)
+    output u4_t  pout     //    : out unsigned(3 downto 0)
      );
 
  u32_t i_adr;   // insn addr
@@ -75,7 +76,7 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
 
   always @(posedge cclk) begin
     if(d_we[0] && d_adr == 32'hffff0000)    // para port
-      pout <= d_dw[7:0];
+      pout <= d_dw[3:0];
 // synthesis translate_off
     else if(d_we[0] && d_adr == 32'hffff0004)
       $fwrite(STDERR, "%c", d_dw[7:0]);
@@ -143,8 +144,8 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
     .txd  (xtxd),  .rxd  (xrxd),
     .dsr  (1'b0),  .dtr  (), .txen ()
   );
-  assign RXD = ~xtxd;    // to CP2103 RXD
-  assign xrxd = ~TXD;    // from CP2103 TXD
+  assign RXD = xtxd;    // to CP2103 RXD
+  assign xrxd = TXD;    // from CP2103 TXD
 
 endmodule
 
