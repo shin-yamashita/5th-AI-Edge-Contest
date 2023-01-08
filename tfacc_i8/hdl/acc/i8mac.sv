@@ -58,9 +58,12 @@ module i8mac (
   always@(posedge clk) begin
     if(cl) begin
       acc <= 'd0;
-    end else begin
+    end else if(en1) begin
+      acc <= acc + s32_t'(accn);
+    end else if(ben1) begin
+      acc <= acc + bias;
     //  acc <= acc + (en1 ? s32_t'(accn) : 32'sd0) + (ben ? bias : 32'sd0);
-      acc <= acc + ((en1 ? s32_t'(accn) : 32'sd0) | (ben1 ? bias : 32'sd0));
+    //  acc <= acc + ((en1 ? s32_t'(accn) : 32'sd0) | (ben1 ? bias : 32'sd0));
     end
   end
 
@@ -70,6 +73,9 @@ module i8mac (
     end else if(rdy) begin
       aen_d <= {aen_d[2:0], aen};
     end
+
+    mask <= (1 << out_shift) - 1;
+    th <= (mask >> 1) + (acc < 0);
 
     if(!xreset) begin
         acvalid <= '0;
@@ -86,9 +92,9 @@ module i8mac (
 
   end
 
-//  assign xx = signed'(acc * out_mult) >>> 16;
-  assign mask = (1 << out_shift) - 1;
-  assign th = (mask >> 1) + (acc < 0);
+////  assign xx = signed'(acc * out_mult) >>> 16;
+//  assign mask = (1 << out_shift) - 1;
+//  assign th = (mask >> 1) + (acc < 0);
   assign rem = xx & mask;
   assign accm = signed'(((xx >>> out_shift) + out_offs) + ((rem > th)?1:0));
 

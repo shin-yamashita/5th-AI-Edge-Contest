@@ -128,6 +128,7 @@ assign wptmon = {ren,wpt[30:0]};
   logic arreq;
 //  assign arreq = (wpt - rpt) < 256;
   assign arreq = ren && (wpt < (rpt + 264));
+//  assign arreq = ren && (wpt < (rpt + 512)); 
   assign wea = {8{rvalid}};
 
   enum {Idle, Ack, Readcyc, Readcmd, Post} mst;

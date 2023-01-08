@@ -61,19 +61,24 @@ module u8adrgen #(parameter Np = 1)
  u24_t in_adr_i[Np], in_adr_h[Np];
  u24_t fil_adr_i, fil_adr_h;
  logic valid_i[Np], valid_h[Np];
- logic rdy;
+ logic rdy, rdy1;
  logic aen_i, aen_h;
 
  always_comb begin
   for(int i = 0; i < Np; i++) begin
-    in_adr[i] = rdy ? in_adr_i[i] : in_adr_h[i];
-    valid[i]  = rdy ? valid_i[i]  : valid_h[i];
+    //in_adr[i] = rdy ? in_adr_i[i] : in_adr_h[i];
+    //valid[i]  = rdy ? valid_i[i]  : valid_h[i];
+    in_adr[i] = rdy1 ? in_adr_i[i] : in_adr_h[i]; // 230104
+    valid[i]  = rdy1 ? valid_i[i]  : valid_h[i];
   end
  end
- assign fil_adr = rdy ? fil_adr_i : fil_adr_h;
- assign aen = rdy ? aen_i : aen_h;
+ //assign fil_adr = rdy ? fil_adr_i : fil_adr_h;
+ //assign aen = rdy ? aen_i : aen_h;
+ assign fil_adr = rdy1 ? fil_adr_i : fil_adr_h;
+ assign aen = rdy1 ? aen_i : aen_h;
 
  always@(posedge aclk) begin
+  rdy1 <= rdy;  // 230104
   if(!xrst) begin
     aen_h <= 1'b0;
   end else begin
@@ -331,7 +336,7 @@ module u8adrgen #(parameter Np = 1)
     ncalc  <= 'd0;
     run_s    <= 1'b1;
 
-    if(rdy) begin
+    if(rdy & rdy1) begin  // 230104
       if(in_c < ch2C-1) begin
         in_c <= in_c + 1;
       end else begin
@@ -378,7 +383,7 @@ module u8adrgen #(parameter Np = 1)
       end // for
     end
 
-  end else if(state == AccFlush) begin
+  end else if(rdy&rdy1 && state == AccFlush) begin
     ncalc  <= ncalc < 7 ? ncalc + 1 : 'd7;
     if(rdy) begin
       aen_i <= 1'b0;
@@ -391,7 +396,7 @@ module u8adrgen #(parameter Np = 1)
       out_res <= res_c;
       outtc <= 1'b1;
     end
-  end else if(state == AccTerm) begin
+  end else if(rdy&rdy1 && state == AccTerm) begin
   	if(rdy) begin
       aen_i <= 1'b0;
       calc <= 1'b0;

@@ -19,7 +19,7 @@ module tfacc_cpu_v1_0
     input  wire TXD,        // in    std_logic;      -- from debug terminal
     //-- para port out
     output wire xsrrst,
-    output wire [7:0] pout, // out   std_logic_vector(7 downto 0)
+    output wire [3:0] pout, // out   std_logic_vector(7 downto 0)
     
     // User ports ends
     // Do not modify the ports beyond this line
@@ -119,7 +119,7 @@ assign xsrrst = slvreg0[0];
 assign eirq = (irq || slvreg1[0]) & xsrrst;
 
 // Add user logic here
-rv32_core_0 u_rv32_core (
+rv32_core u_rv32_core (
     .cclk    (s00_axi_aclk),  //: in    std_logic;
     
     //-- memory access bus
@@ -140,13 +140,12 @@ rv32_core_0 u_rv32_core (
     .dr      (dr),  // in  unsigned(31 downto 0);
     
     //-- debug port
-    .RXD     (RXD), // out   std_logic;      -- to debug terminal 
-    .TXD     (TXD), // in    std_logic;      -- from debug terminal
-
+    .RXD     (RXD), // out std_logic;      -- to debug terminal 
+    .TXD     (TXD), // in  std_logic;      -- from debug terminal
     //-- ext irq
     .eirq    (eirq),
     //-- para port out
-    .pout    (pout) // out   std_logic_vector(7 downto 0)
+    .pout    (pout) // out   std_logic_vector(3 downto 0)
 );
 
 // User logic ends

@@ -85,7 +85,7 @@ u24_t in_adr[Np], out_adr[Np];
 u24_t fil_adr;
 u12_t bias_adr, quant_adr;
 u2_t  chofs;
-logic fil_rdy, out_rdy, bias_rdy, quant_rdy, run, run_s, aen, acl, acvalid, mac_rdy, out_cmpl;
+logic fil_rdy, out_rdy, bias_rdy, quant_rdy, run, run_s, aen, acl, acvalid, mac_rdy, mac_rdy1, out_cmpl;
 logic aen_1d, acl_1d;
 logic valid[Np], ivalid[Np], acv[Np][4];
 //s8_t  accd[Np];
@@ -149,7 +149,7 @@ assign quant_rdy = e_rdy;
 logic fb_rdy;
 logic dwen;   // ch_para
 
-assign mac_rdy = in_rdy & fb_rdy;
+assign mac_rdy = in_rdy & fb_rdy; // 230104
 
 assign acvalid  = acv[0][0];
 assign out_rdy  = and_unpack(o_rdy);
@@ -197,7 +197,7 @@ always_ff@(posedge aclk) begin
   aen_1d <= aen;
 //  aen_1d <= mac_rdy ? aen : aen_1d;
   acl_1d <= acl;
-//  mac_rdy <= in_rdy & fil_rdy & bias_rdy;
+  mac_rdy1 <= mac_rdy;  //n_rdy & fil_rdy & bias_rdy;
   fb_rdy <= fil_rdy & bias_rdy & quant_rdy;
 end
 
@@ -270,7 +270,7 @@ generate
       .xreset    (arst_n),              //in                xreset  , //
       .aen       (aen_1d),              //in                aen     , // acc enable
       .acl       (acl_1d),              //in                acl     , // acc clear
-      .rdy       (mac_rdy),             //in                rdy     , // memory read data ready
+      .rdy       (mac_rdy & mac_rdy1),             //in                rdy     , // memory read data ready
       .ivalid    (ivalid[i]),           //in                ivalid  , // input data valid
       .in_d      (in_d[i][cc*8+7 -:8]), //in  signed [7:0]  in_d    , // s8 input
       .fil_d     (fil_d[cc*8+7 -:8]),   //in  signed [7:0]  fil_d   , // s8 filter
@@ -506,7 +506,7 @@ ila_0 u_ila (
           {run,aen_1d,acl_1d,acvalid,mac_rdy,ivalid[0],in_rdy,fil_rdy}) // input wire [7:0]  probe4
          // 7     6     5      4       3         2       1        0
 );
---*/
+
 u16_t probe0;
 assign probe0 = {
   fpr[1:0],
@@ -529,7 +529,7 @@ ila_0 u_ila (
 	.clk(cclk), // input wire clk
   .probe0(probe0) // input wire [15:0]  probe0  
 );
-
+--*/
 endmodule
 
 

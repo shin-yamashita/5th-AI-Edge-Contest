@@ -2,7 +2,7 @@
 //-- DDR3 interface
 //--
 `timescale 1ns/1ns
-`include "acc/logic_types.svh"
+//`include "acc/logic_types.svh"
 
 module tfacc_memif
     (
@@ -62,10 +62,10 @@ module tfacc_memif
 );
 
 //parameter Np = 16;
-parameter Np = 20;
+//parameter Np = 20;
 //parameter Np = 24;
 //parameter Np = 26;
-//parameter Np = 32;
+parameter Np = 32;
 //parameter Np = 38;
 //parameter Np = 40;    // not routeable
 //parameter Np = 42;    // LUT over 4757/4727
@@ -488,9 +488,9 @@ axi_ic u_aci_ic (
 );
 
 // cache bus
-u32_t c_adr, d_adr, e_adr;
-u32_t  c_dr;    // ch_para
-u32_t d_dr, e_dr;
+wire [31:0] c_adr, d_adr, e_adr;
+wire [31:0]  c_dr;    // ch_para
+wire [31:0] d_dr, e_dr;
 logic c_re, d_re, e_re;
 //logic in_rdy, c_rdy, d_rdy, rdyin;
 logic c_rdy, d_rdy, e_rdy;
@@ -500,9 +500,9 @@ logic c_rdy, d_rdy, e_rdy;
 
 // cache control regs
 
-u32_t rbase, wbase;
+wire [31:0] rbase, wbase;
 
-u4_t clreq;
+wire [3:0] clreq;
 /*-- clreq from tfacc_core
 logic cs;
 assign cs = (adr & 32'hffffffe0) == 32'hffff0180 ? 1'b1 : 1'b0;	// ffff0180
@@ -560,7 +560,7 @@ output_arb
     );
 
 
-u32_t rptmon, wptmon;
+wire [31:0] rptmon, wptmon;
 
 //------ input_arb ---------------------------
 
@@ -607,9 +607,10 @@ input_arb
     .rready     (S01_AXI_RREADY)	// out	std_logic;
   );
 
-u32_t c_base, d_base, e_base;
+wire [31:0] c_base, d_base, e_base;
 
-rd_cache_nk  # (.NK(32), .debug(debug) ) u_cache_filt
+//rd_cache_nk  # (.NK(32), .debug(debug) ) u_cache_filt
+rd_cache_nk  # (.NK(4), .debug(debug) ) u_cache_filt
     (
     .rptmon(), .wptmon(),
 //-- bus
@@ -723,8 +724,8 @@ rd_cache_nk  # (.NK(4), .debug(debug) ) u_cache_quant
     .rready     (S04_AXI_RREADY)    // out  std_logic;
     );
 
-logic r_rdy, t_rdy;
-u32_t r_dr, t_dr;
+wire  r_rdy, t_rdy;
+wire [31:0] r_dr, t_dr;
 
 assign rdy = r_rdy & t_rdy;
 assign dr  = r_dr | t_dr;
