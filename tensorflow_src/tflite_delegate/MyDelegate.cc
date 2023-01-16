@@ -82,6 +82,7 @@ public:
                 //memcpy(pt, GetTensorData<int8>(filter), filter->bytes);
             char* pt =  reorder_filter(&filter_size, GetTensorData<int8>(filter), filH, filW, filC, inC, outC, dwen);
             filter->data.raw = pt;
+            filter->bytes = filter_size;
 
             prepare_buffer_size(kTfaccOutput, output->bytes);
             prepare_buffer_size(kTfaccInput, input->bytes);

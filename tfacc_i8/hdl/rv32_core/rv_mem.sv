@@ -38,12 +38,13 @@ u32_t doa, dob;
 u32_t dob2;
 u32_t dib;
 logic csa, csb;
-logic csb2;
+logic csb2, cs_p;
 logic ena, enb;
 u4_t  web;
-logic d_re1;
+logic d_re1, d_re2, p_re1;
 logic i_re1;
 logic den;
+u32_t d_dr_s, p_dr_s;
 
 assign den = (d_we != 4'b0000) || d_re ? (csb & xreset) : 1'b0;    // when d_we /= 0 or d_re = '1'	else '0';	-- d-bus enable
 
@@ -53,34 +54,26 @@ assign addrb = den ? d_adr : p_adr;
 assign csa  = i_adr[31:Nb] == '0;
 assign csb  = d_adr[31:Nb] == '0;
 assign csb2 = p_adr[31:Nb] == '0;
+assign cs_p = (p_adr & 32'hffffff00) == 'h100;  // 
+assign cs_d = (d_adr & 32'hffffff00) == 'h100; 
 
 assign ena = csa ? i_re & rdy : '0;
-//  ena <= i_re and rdy 	when csa = '1'	else '0';
 assign enb = (csb | csb2);    // & rdy;
-// enb <= (csb or csb2) and rdy;
 assign web = !rdy ? 4'b0000 : 
-             (den ? d_we : 
-             (p_we && csb2 ? 4'b1111 : 4'b0000));
-//  web <= "0000"	when rdy = '0'	else
-//	d_we	when den = '1'	else
-//	"1111"	when p_we = '1' and csb2 = '1'	else 
-//	"0000";
+             (den ? d_we : (p_we && csb2 ? 4'b1111 : 4'b0000));
+
 assign dib = den ? d_dw : p_dw;
-//  dib  <= std_logic_vector(d_dw)	when den = '1' else
-//	  std_logic_vector(p_dw);
 
 assign i_dr = i_re1 ? doa : '0;
-//  i_dr <= unsigned(doa) when i_re1 = '1'	else (others => '0');
-assign d_dr = d_re1 ? dob : '0;
-//  d_dr <= unsigned(dob) when d_re1 = '1'	else (others => '0');
-assign p_dr = dob;
-// p_dr <= unsigned(dob);
+assign d_dr = d_re2 ? d_dr_s : (d_re1 ? dob : '0);
+assign p_dr = p_re1 ? p_dr_s : dob;
 assign p_ack = (p_we || p_re) & !den;
-//  p_ack <= (p_we or p_re) and not den;
 
   always_ff@(posedge clk) begin
+    p_re1 <= cs_p & p_re;
     if(rdy) begin
       d_re1 <= csb & d_re;
+      d_re2 <= cs_d & d_re;
       i_re1 <= csa & i_re;
     end
   end
@@ -97,12 +90,20 @@ assign p_ack = (p_we || p_re) & !den;
       .doutB(dob)
       );
 
-//u_dpram32kB : dpram32kB
-//  PORT MAP (
-//    clka  => clk,    ena   => ena,    wea   => wea,
-//    addra => addra(12 downto 0),      dina  => dia,    douta => doa,
-//    clkb  => clk,    enb   => enb,    web   => web,
-//    addrb => addrb(12 downto 0),      dinb  => dib,    doutb => dob
-//  );
+  rv_shm u_rv_shm (
+      .clkA (clk),  // d port
+      .enaA (cs_d),
+      .weA  (d_we), // [3:0]
+      .addrA(d_adr[7:2]), // [5:0] word adr
+      .dinA (d_dw),
+      .doutA(d_dr_s),
+      .clkB (clk),  // p port
+      .enaB (cs_p),
+      .weB  ({p_we,p_we,p_we,p_we}),
+      .addrB(p_adr[7:2]),
+      .dinB (p_dw),
+      .doutB(p_dr_s)
+  );
+
 endmodule
 

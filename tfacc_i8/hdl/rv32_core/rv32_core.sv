@@ -2,11 +2,12 @@
 //
 // 2021/4
 // 2022/11/23 for kv260
+// 2023/01/14 Nk = 64 -> 32
 
 `timescale 1ns/1ns
 `include "logic_types.svh"
 
-module rv32_core #( parameter debug = 0, parameter Nk = 64 ) (
+module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
     input  logic cclk,    //    : in    std_logic;
     input  logic xreset,  //  : in  std_logic;
     //-- memory access bus
