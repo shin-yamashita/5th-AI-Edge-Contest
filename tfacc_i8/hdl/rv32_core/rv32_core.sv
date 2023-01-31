@@ -30,8 +30,9 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
     //-- ext irq input
     input  logic eirq,    //    : in  std_logic;
     //-- para port out
-    output u4_t  pout     //    : out unsigned(3 downto 0)
-     );
+    output u4_t  pout,     //    : out unsigned(3 downto 0)
+    output logic fan_out
+    );
 
  u32_t i_adr;   // insn addr
  u32_t i_dr;    // insn read data
@@ -48,8 +49,8 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
 
  logic irq, irq2;
 
- u32_t d_dr1, d_dr2;
- logic enaB, re1;
+ u32_t d_dr1, d_dr2, d_dr3;
+ //logic enaB, re1;
  
  
  //-- external bus connection
@@ -62,9 +63,9 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
  assign d_rdy = rdy;
  assign d_be = 1'b0;
 
- assign d_dr = d_dr2 | d_dr1 | dr;
+ assign d_dr = d_dr3 | d_dr2 | d_dr1 | dr;
 
- assign enaB = (d_re || (d_we != 'd0)) && d_adr < 32'h10000;
+ //assign enaB = (d_re || (d_we != 'd0)) && d_adr < 32'h10000;
  
  assign irq = eirq || irq2;
  
@@ -130,11 +131,10 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
 
 
 // peripheral : debug serial terminal
-  logic  cs_sio, xtxd, xrxd;
+  logic  cs_sio, xtxd, xrxd, cs_sys;
   assign cs_sio = {d_adr[31:5],5'h0} == 32'hffff0020;
-  always_ff@(posedge cclk) begin
-    re1 <= cs_sio & re;
-  end
+  assign cs_sys = {d_adr[31:5],5'h0} == 32'hffff0040;
+
   rv_sio u_rv_sio (
     .clk  (cclk),
     .xreset(xreset),
@@ -147,6 +147,16 @@ module rv32_core #( parameter debug = 0, parameter Nk = 32 ) (
   );
   assign RXD = xtxd;    // to CP2103 RXD
   assign xrxd = TXD;    // from CP2103 TXD
+
+  rv_sysmon u_rv_sysmon(
+    .clk  (cclk),
+    .xreset(xreset),
+    .adr  (d_adr[4:0]),
+    .cs   (cs_sys), .rdy (d_rdy),
+    .we   (d_we),  .re   (d_re),
+    .dw   (d_dw),  .dr   (d_dr3),	
+    .fan_out  (fan_out)
+  );
 
 endmodule
 

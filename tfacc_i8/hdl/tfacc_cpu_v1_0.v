@@ -20,6 +20,7 @@ module tfacc_cpu_v1_0
     //-- para port out
     output wire xsrrst,
     output wire [3:0] pout, // out   std_logic_vector(7 downto 0)
+    output wire fan_out,
     
     // User ports ends
     // Do not modify the ports beyond this line
@@ -145,7 +146,8 @@ rv32_core u_rv32_core (
     //-- ext irq
     .eirq    (eirq),
     //-- para port out
-    .pout    (pout) // out   std_logic_vector(3 downto 0)
+    .pout    (pout), // out   std_logic_vector(3 downto 0)
+    .fan_out (fan_out)
 );
 
 // User logic ends
