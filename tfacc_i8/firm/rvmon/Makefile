@@ -2,34 +2,16 @@
 # 2007/04/09  sr_test compile for sr cpu
 # 2014/12/09  gcc-4.6.3 xgcc test
 # 2017/03/20  risc-v test
-#
+# 2022/11/03  rv32_core fpu support (Zfinx)
 
-#ARCH = RV32I
-#ARCH = RV32IM
-#ARCH = RV32IMC
-ARCH = RV32EMC
+#ARCH = rv32ec
+#ARCH = rv32em
+#ARCH = rv32emc
+ARCH = rv32emzfinx
+#ARCH = rv32emczfinx
 
-ifeq ($(ARCH), RV32I)
- PREFIX  = /opt/riscv/bin/riscv64-unknown-elf-
- PREFIX32  = /opt/riscv/bin/riscv32-unknown-elf-
- MFLAG   = -march=rv32i -mabi=ilp32
-endif
-ifeq ($(ARCH), RV32IM)
- PREFIX  = /opt/riscv/bin/riscv64-unknown-elf-
- PREFIX32  = /opt/riscv/bin/riscv32-unknown-elf-
- MFLAG   = -march=rv32im -mabi=ilp32
-endif
-ifeq ($(ARCH), RV32IMC)
- PREFIX  = /opt/riscv/bin/riscv64-unknown-elf-
- PREFIX32  = /opt/riscv/bin/riscv32-unknown-elf-
- MFLAG   = -march=rv32imc -mabi=ilp32
-endif
-ifeq ($(ARCH), RV32EMC)
- PREFIX  = /opt/rv32e/bin/riscv32-unknown-elf-
- PREFIX32  = $(PREFIX)
- MFLAG   = -march=rv32emc -mabi=ilp32e
-endif
-
+PREFIX  = /opt/rv32e/bin/riscv32-unknown-elf-
+MFLAG   = -march=$(ARCH) -mabi=ilp32e
 
 CC	= $(PREFIX)gcc
 CPP	= $(PREFIX)g++
@@ -39,7 +21,8 @@ OBJCP	= $(PREFIX)objcopy
 OBJDUMP	= $(PREFIX)objdump
 
 #CFLAGS	= -g -Wall -nostartfiles -O2
-CFLAGS	= -g -Wall -O2 $(MFLAG)  -nostartfiles -I./include 
+CFLAGS	= -g -Wall -O $(MFLAG)  -nostartfiles -I./include 
+CPPFLAGS = $(CFLAGS) -fno-threadsafe-statics
 
 #LDFLAGS =  -nostdlib -Wl,-Map,$(TARGET).map
 LDFLAGS = $(MFLAG) -Wl,-Map,$@.map,-T,rv32ldscr.x  -nostdlib -L./lib
@@ -47,13 +30,15 @@ LDFLAGS = $(MFLAG) -Wl,-Map,$@.map,-T,rv32ldscr.x  -nostdlib -L./lib
 
 LDLIBS  = -lmc -lm -lc -lgcc
 
-SRCS	= rvmon.c pre_data.c
+SRCS	= rvmon.c memtst.c
+SRCSP   = rv_preproc.cc
+# pre_data.c
 
 PRGS    = rvmon
-OBJS    = $(SRCS:.c=.o)
-DEPS	= $(SRCS:.c=.dep) crt0.dep
-MEM	= $(SRCS:.c=.mem)
-REF	= $(SRCS:.c=.ref)
+OBJS    = $(SRCS:.c=.o) $(SRCSP:.cc=.o) 
+DEPS	= $(OBJS:.o=.dep) crt0.dep
+MEM	= $(PRGS).mem
+REF	= $(PRGS).ref
 
 all:	$(PRGS) lib/libmc.a
 
@@ -87,8 +72,8 @@ rvmon:	crt0.o $(OBJS)
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $<
 
-%.o:	%.cpp
-	$(CPP) $(CFLAGS) -c $<
+%.o:	%.cc
+	$(CPP) $(CPPFLAGS) -c $<
 
 %.o:	%.S
 	$(CC) $(CFLAGS) -c $<
@@ -97,8 +82,8 @@ install:	rvmon.mot rvmon.mem
 	cp -p rvmon.mot ../../../infer/fpga-data
 	cp -p rvmon.mem ../../sim/
 
-rsync:
-	rsync -av --delete ../../../../infer/fpga-data/ u96:app/TF/infer/fpga-data
+#rsync:
+#	rsync -av --delete ../../../../infer/fpga-data/ u96:app/TF/infer/fpga-data
 
 clean:
 	@rm -f $(PRGS) *.o core* a.out *~ \#*\# *.map *.lst *.ref *.gcc *.out *.bin *.mot *.mem

@@ -1,9 +1,12 @@
 #
 # 2010/04/20	mini-stdio library
 #
+#ARCH = rv32emc
+ARCH = rv32emzfinx
+#ARCH = rv32emczfinx
 
 PREFIX  = /opt/rv32e/bin/riscv32-unknown-elf-
-MFLAG   = -march=rv32emc -mabi=ilp32e
+MFLAG   = -march=$(ARCH) -mabi=ilp32e
 
 CC	= $(PREFIX)gcc
 LD	= $(PREFIX)ld

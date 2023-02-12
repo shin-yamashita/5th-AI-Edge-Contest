@@ -41,11 +41,13 @@ _BEGIN_STD_C
 #define POUT    ((volatile u8*)0xffff0000)
 #define GPIO    ((volatile u8*)0xffff0004)
 
-//      sr_sio interface
+//      rv_sio interface
 #define SIOTRX  ((volatile char *)0xffff0020)
 #define SIOFLG  ((volatile char *)0xffff0021)
 #define SIOBR   ((volatile short *)0xffff0022)
 
+//      rv_sysmon
+#define SYSMON  ((volatile u32 *)0xffff0040)
 
 //      ulib.c function prototypes
 

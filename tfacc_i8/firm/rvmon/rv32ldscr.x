@@ -11,7 +11,7 @@ OUTPUT_ARCH(riscv)
 /* add */
 MEMORY
 {
-   RAM (rwx)  : ORIGIN = 0x0000000, LENGTH = 64k 
+   RAM (rwx)  : ORIGIN = 0x0000000, LENGTH = 32k 
 }
 /* add end */
 ENTRY(_start)
@@ -19,7 +19,7 @@ SEARCH_DIR("/opt/rv32e/riscv32-unknown-elf/lib");
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
-  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x10000)); . = SEGMENT_START("text-segment", 0x10000) + SIZEOF_HEADERS;
+/*  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x10000)); . = SEGMENT_START("text-segment", 0x10000) + SIZEOF_HEADERS;*/
 /* add */
   PROVIDE(__stack_top = ORIGIN(RAM) + LENGTH(RAM));
 /* add end */

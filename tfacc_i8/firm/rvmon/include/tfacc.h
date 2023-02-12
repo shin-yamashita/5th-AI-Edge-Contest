@@ -8,6 +8,8 @@
 //      tfacc_core 
 
 #define CACHECTRL       ((volatile u8*)0xffff0180)
+#define RVCACHECTRL       ((volatile u8*)0xffff0188)
+
 #define TFACCCACHE      ((volatile u32 *)0xffff0180)
 
 #define TFACCFLG        ((volatile u32 *)0xffff0300)	// b0:(w)kick (r)run b8:(wr)cmpl b9:(wr)inten
@@ -26,12 +28,16 @@
 
 #define RESET_REG       ((volatile u32 *)0x00000080)
 #define RUN_REG         ((volatile u32 *)0x00000084)
+#define RUN_REG_P       ((volatile u32 *)0x000001f0)
 
-#define TRACK_BUF       ((volatile u32 *)0x000000c0)    // Tracking data buffer addr
-#define TRACK_ST        ((volatile u32 *)0x000000c4)    // Tracking process status
-#define TRACK_FRM       ((volatile u32 *)0x000000c8)    // frame no.
-#define TRACK_BUFVM     ((volatile u64 *)0x000000d0)
-#define TRACK_MAP       ((volatile u32 *)0x000000e0)    // pointer to map data
+#define PREP_BUF        ((volatile u32 *)0x000000c0)    // Preproc data buffer addr
+#define PREP_ST         ((volatile u32 *)0x000000c4)    // Preproc process status 1:progress
+#define PREP_LEN        ((volatile u32 *)0x000000c8)    // lider data length (float word)
+#define PREP_W          ((volatile u32 *)0x000000cc)    // BEV H,W size
+#define PREP_BANK       ((volatile u32 *)0x000000d0)    // BEV bank 0/1
+#define PREP_BNDRY      ((volatile float *)0x000000d4)    // BNDRY
+#define PREP_AREA       ((volatile float *)0x000000d8)    // area
+#define PREP_R45        ((volatile u32 *)0x000000dc)    // R45
 
 #define FREQ_REG        ((volatile u32 *)0x000000f0)
 #define ACCPARAMS       ((volatile u32 *)0x00000100)
@@ -49,5 +55,8 @@ typedef enum {
     kTfaccRun,
 } TfaccCtrl;
 
-void run_tracking();
-
+_BEGIN_STD_C
+void run_preproc();
+int rv_cache_flush();
+int rv_cache_clean();
+_END_STD_C
