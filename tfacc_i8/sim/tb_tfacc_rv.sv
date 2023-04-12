@@ -32,7 +32,8 @@ module tb_tfacc_rv();
   logic [31:0]      dw;     
   logic [31:0]      dr;
   logic             irq;
-  
+
+
   always #5  clk <= !clk;	// 100MHz clock
 
   task reg_wr(input int a, input int data);
@@ -317,7 +318,8 @@ logic TXD;     // : in  std_logic;    -- from debug terminal
 //-- ext irq input
 logic eirq = '0;    //    : in  std_logic;
 //-- para port out
-u8_t  pout;     //    : out unsigned(7 downto 0)
+u4_t  pout;     //    : out unsigned(7 downto 0)
+logic fan_out;
 
 rv32_core #(.debug(0)) u_rv32_core (.*,  .cclk(clk), .xreset(xrst));
 

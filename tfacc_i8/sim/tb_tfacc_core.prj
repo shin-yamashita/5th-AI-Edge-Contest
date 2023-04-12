@@ -25,6 +25,9 @@ sv work  --include "../hdl/acc" --include "./" \
 "../hdl/acc/u8adrgen.sv" \
 "../hdl/acc/i8mac.sv" \
 "../hdl/acc/rv_axi_port.sv" \
+"../hdl/acc/rv_cache.sv" \
+"../hdl/acc/adrtag.sv" \
+"../hdl/acc/dpram10m.sv" \
 "tb_tfacc_core.sv" \
 
 # compile glbl module

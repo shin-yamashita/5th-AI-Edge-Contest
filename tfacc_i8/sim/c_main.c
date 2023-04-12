@@ -199,6 +199,19 @@ void reorder_filter(int filH, int filW, int filC, int inC, int outC, int dwen)
     filter_size = filter_ttl;
 }
 
+void rvcache_access_test()
+{
+  static int i = 0, j;
+  uint32_t rd;
+  j = (~i) & 0xffff;
+  reg_rd(CPUBUFF+j*4, &rd);
+  nop();nop();
+  i = i & 0xffff;
+  reg_wr(CPUBUFF+i*4, i);
+  i++;
+  nop();nop();
+}
+
 int run_conv(int st)
 {
   int i, rd, n, pdat, dwen;
@@ -238,6 +251,7 @@ int run_conv(int st)
     fgets(str, 80, dfp);
     sscanf(str, "%s %zd\n", id, &output_size);
     printf("%s: %d\n", id, output_size);
+
     input  = (uint8_t*)realloc(input, input_size);
     filter = (uint8_t*)realloc(filter, filter_size);
     bias   = (int32_t*)realloc(bias, bias_size);
@@ -305,7 +319,7 @@ int run_conv(int st)
 //  int ch2C = dwen ? 1 : inC;
 //  int finc = dwen ? filC : 1;
 
-  reorder_filter(filH, filW, filC, inC, outC, dwen);
+////  reorder_filter(filH, filW, filC, inC, outC, dwen);
 
 
   nop();
@@ -321,6 +335,7 @@ int run_conv(int st)
   int run;
   do{
 	  nop();
+    rvcache_access_test();
 	  reg_rd(TFACCFLG, &run);
   }while(run & 0x1);
   printf("== run complete\n");
@@ -362,26 +377,28 @@ int c_main(int stage_begin, int stage_end)
 	if(stage_begin < 0 || stage_begin > 71){
 	    return 0;
 	}
-/*
+
 //	FILE *fp = fopen("stage.in", "r");
 //	i = fscanf(fp, "%d %d", &stage_begin, &stage_end);
 //	fclose(fp);
+#if 0
   printf("ram access test.\n");
   nop();nop();nop();nop();
 
-  for(i = 0; i < 10; i++){
+  for(i = 0; i < 64; i++){
     nop();
     reg_wr(CPUBUFF+i*4, i);
 //cpubuff[i] = i;
     printf("wr(%x):%x\n", CPUBUFF+i*4, i);
   }
-  for(i = 0; i < 10; i++){
+  for(i = 0; i < 800; i++){
     uint32_t rd;
     nop();
     reg_rd(CPUBUFF+i*4, &rd);
-    printf("rd(%x):%x\n", CPUBUFF+i*4, rd);
+    printf("rd(%x):%x %x\n", CPUBUFF+i*4, rd, i);
   }
-*/
+#endif
+
  	printf("run stage %d to %d\n", stage_begin, stage_end);
 	for(i = stage_begin; i <= stage_end; i++){
 		now = time(NULL);

@@ -3,13 +3,13 @@
 // 2019/11/08 200MHz MET
 
 `timescale 1ns/1ns
-`include "rv_types.svh"
+`include "logic_types.svh"
 
 parameter SYS_exit = 93;
 
 module tb_rv32_core #(parameter debug = 1) ();
 
- logic rxd, txd;
+ logic rxd, txd, CTS, RTS;
 
 logic cclk = 1;    //    : in    std_logic;
 logic xreset;  //  : in  std_logic;
@@ -33,7 +33,8 @@ logic TXD;     // : in  std_logic;    -- from debug terminal
 //-- ext irq input
 logic eirq;    //    : in  std_logic;
 //-- para port out
-u8_t  pout;     //    : out unsigned(7 downto 0)
+u4_t  pout;     //    : out unsigned(7 downto 0)
+logic fan_out;
 
  always #5       // 100MHz
         cclk <= !cclk;
